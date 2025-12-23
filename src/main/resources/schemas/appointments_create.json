@@ -1,0 +1,74 @@
+{
+  "description": "Create a new appointment",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source system (e.g., ZOHO_BOOKING)"
+      },
+      "extId": {
+        "type": "string",
+        "description": "External ID for the appointment"
+      },
+      "appointmentData": {
+        "type": "object",
+        "properties": {
+          "startDateTime": {
+            "type": "string",
+            "description": "Start date and time (YYYY-MM-DD HH:MM:SS)"
+          },
+          "endDateTime": {
+            "type": "string",
+            "description": "End date and time (YYYY-MM-DD HH:MM:SS)"
+          },
+          "serviceName": {
+            "type": "string",
+            "description": "Name of the service"
+          },
+          "customerFirstName": {
+            "type": "string",
+            "description": "Customer first name"
+          },
+          "customerLastName": {
+            "type": "string",
+            "description": "Customer last name"
+          },
+          "customerEmail": {
+            "type": "string",
+            "description": "Customer email address"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "description": "Customer phone number in E.164 format"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "Time zone (e.g., America/New_York)"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Appointment notes"
+          },
+          "status": {
+            "type": "string",
+            "description": "Appointment status (e.g., upcoming)"
+          }
+        },
+        "required": ["startDateTime", "endDateTime", "phoneNumber"]
+      }
+    },
+    "required": ["appointmentData"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  }
+}

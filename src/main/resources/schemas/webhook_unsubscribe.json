@@ -1,0 +1,32 @@
+{
+  "description": "Unsubscribe from a webhook event",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "clientId": {
+        "type": "string",
+        "description": "The client ID"
+      },
+      "event": {
+        "type": "string",
+        "description": "The event type to unsubscribe from"
+      },
+      "targetUrl": {
+        "type": "string",
+        "description": "The webhook target URL"
+      }
+    },
+    "required": ["clientId", "event", "targetUrl"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  }
+}

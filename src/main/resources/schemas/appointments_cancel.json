@@ -1,0 +1,28 @@
+{
+  "description": "Cancel an appointment",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "source": {
+        "type": "string",
+        "description": "Source system (e.g., ZOHO_BOOKING)"
+      },
+      "extId": {
+        "type": "string",
+        "description": "External ID for the appointment"
+      }
+    },
+    "required": ["extId"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  }
+}

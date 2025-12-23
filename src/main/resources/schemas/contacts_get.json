@@ -1,0 +1,21 @@
+{
+  "description": "Get a specific contact by ID",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "contactId": {
+        "type": "string",
+        "description": "The contact ID to retrieve (use the 'id' field from contacts_get_all response, NOT the 'clientId' field)"
+      }
+    },
+    "required": ["contactId"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "contact": {
+        "type": "object"
+      }
+    }
+  }
+}

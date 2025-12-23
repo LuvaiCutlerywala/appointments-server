@@ -1,0 +1,15 @@
+{
+  "description": "List all webhook subscriptions",
+  "inputSchema": {
+    "type": "object",
+    "properties": {}
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "subscriptions": {
+        "type": "array"
+      }
+    }
+  }
+}

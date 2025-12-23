@@ -1,0 +1,28 @@
+{
+  "description": "Subscribe to a webhook event",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "target_url": {
+        "type": "string",
+        "description": "The webhook target URL to receive events"
+      },
+      "event": {
+        "type": "string",
+        "description": "The event type to subscribe to (e.g., INCOMING_MESSAGE)"
+      }
+    },
+    "required": ["target_url", "event"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  }
+}

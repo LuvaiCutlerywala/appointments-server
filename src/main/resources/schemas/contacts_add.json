@@ -1,0 +1,57 @@
+{
+  "description": "Add new contacts to Textellent",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "contacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "contactFirstName": {
+              "type": "string",
+              "description": "Contact first name"
+            },
+            "contactLastName": {
+              "type": "string",
+              "description": "Contact last name"
+            },
+            "phoneMobile": {
+              "type": "string",
+              "description": "Mobile phone number in E.164 format"
+            },
+            "phoneHome": {
+              "type": "string",
+              "description": "Home phone number"
+            },
+            "phoneWork": {
+              "type": "string",
+              "description": "Work phone number"
+            },
+            "phoneAlternate": {
+              "type": "string",
+              "description": "Alternate phone number"
+            }
+          },
+          "required": ["contactFirstName", "phoneMobile"]
+        },
+        "description": "Array of contacts to add"
+      }
+    },
+    "required": ["contacts"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "contacts": {
+        "type": "array"
+      }
+    }
+  }
+}

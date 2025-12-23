@@ -1,0 +1,49 @@
+{
+  "description": "Send SMS/MMS using Textellent API",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "text": {
+        "type": "string",
+        "description": "The message text content"
+      },
+      "from": {
+        "type": "string",
+        "description": "The sender phone number in E.164 format"
+      },
+      "to": {
+        "type": "string",
+        "description": "The recipient phone number in E.164 format"
+      },
+      "mediaFileIds": {
+        "type": "array",
+        "items": {
+          "type": "integer"
+        },
+        "description": "Array of media file IDs to attach"
+      },
+      "mediaFileURLs": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of media file URLs to attach"
+      }
+    },
+    "required": ["text", "from", "to"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      },
+      "messageId": {
+        "type": "string"
+      }
+    }
+  }
+}

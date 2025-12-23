@@ -1,0 +1,45 @@
+{
+  "description": "Assign contacts to a tag",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "tagName": {
+        "type": "string",
+        "description": "Name of the tag"
+      },
+      "contacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "customerName": {
+              "type": "string",
+              "description": "Name of the customer"
+            },
+            "phoneNumber": {
+              "type": "string",
+              "description": "Phone number of the customer"
+            },
+            "assignmentDate": {
+              "type": "string",
+              "description": "Assignment date in MM/DD/YYYY format"
+            }
+          },
+          "required": ["phoneNumber"]
+        }
+      }
+    },
+    "required": ["tagName", "contacts"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  }
+}

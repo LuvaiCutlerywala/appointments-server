@@ -1,0 +1,31 @@
+{
+  "description": "Remove contacts from a tag",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "tagName": {
+        "type": "string",
+        "description": "Name of the tag"
+      },
+      "phoneNumbers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Array of phone numbers to remove from the tag"
+      }
+    },
+    "required": ["tagName", "phoneNumbers"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "statusCode": {
+        "type": "string"
+      },
+      "message": {
+        "type": "string"
+      }
+    }
+  }
+}

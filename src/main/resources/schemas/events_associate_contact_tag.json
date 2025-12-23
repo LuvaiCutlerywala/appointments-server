@@ -1,0 +1,21 @@
+{
+  "description": "Get associate contact to tag events",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "description": "Number of events to retrieve",
+        "default": 10
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "events": {
+        "type": "array"
+      }
+    }
+  }
+}

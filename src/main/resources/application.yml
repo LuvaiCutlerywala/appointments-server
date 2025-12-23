@@ -1,0 +1,43 @@
+server:
+  port: 9090
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: textellent-mcp-server
+
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+
+# Textellent API Configuration
+textellent:
+  api:
+    # Local backend configuration - change this to point to your API backend
+    base-url: http://localhost:8080
+    timeout: 30000
+    # For production, use: https://client.textellent.com
+
+    # These should be provided via environment variables or external configuration
+    # authCode: ${TEXTELLENT_AUTH_CODE}
+    # partnerClientCode: ${TEXTELLENT_PARTNER_CLIENT_CODE}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.textellent.mcp: DEBUG
+    org.springframework.web: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# MCP Configuration
+mcp:
+  server:
+    name: textellent-mcp-server
+    version: 1.0.0
+    description: MCP Server exposing Textellent REST APIs

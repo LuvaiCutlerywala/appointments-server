@@ -1,0 +1,25 @@
+{
+  "manifest_version": "0.3",
+  "name": "textellent-mcp-server",
+  "display_name": "Textellent MCP Server",
+  "version": "1.0.0",
+  "description": "MCP server for Textellent API - messaging, contacts, tags, appointments, and webhooks",
+  "long_description": "A comprehensive Model Context Protocol (MCP) server that exposes all Textellent API endpoints through 32 MCP tools. Enables AI agents to send messages, manage contacts, create tags, schedule appointments, and configure webhooks using natural language.\n\nFeatures:\n- Send SMS/MMS messages\n- Manage contacts (add, update, delete, search)\n- Create and manage tags\n- Schedule and manage appointments\n- Subscribe to webhook events\n- Handle event callbacks",
+  "author": {
+    "name": "Textellent",
+    "url": "https://www.textellent.com"
+  },
+  "license": "MIT",
+  "server": {
+    "type": "node",
+    "entry_point": "mcp-bridge.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/mcp-bridge.js"]
+    }
+  },
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}

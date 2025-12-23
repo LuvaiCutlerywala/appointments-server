@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(mvn clean package:*)",
+      "Bash(mvn spring-boot:run:*)",
+      "Bash(curl:*)",
+      "Bash(mcpb init:*)",
+      "Bash(mcpb --help:*)",
+      "Bash(mcpb validate:*)",
+      "Bash(mcpb:*)",
+      "Bash(npm info:*)",
+      "Bash(timeout 15 bash:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(del mcp-server.mcpb)",
+      "Bash(cat:*)"
+    ]
+  }
+}

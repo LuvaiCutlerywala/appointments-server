@@ -1,0 +1,15 @@
+{
+  "description": "Get all contact tags",
+  "inputSchema": {
+    "type": "object",
+    "properties": {}
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "tags": {
+        "type": "array"
+      }
+    }
+  }
+}

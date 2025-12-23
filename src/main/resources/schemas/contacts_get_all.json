@@ -1,0 +1,33 @@
+{
+  "description": "Get all contacts with optional search and pagination",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "searchKey": {
+        "type": "string",
+        "description": "Search keyword to filter contacts"
+      },
+      "pageSize": {
+        "type": "integer",
+        "description": "Number of contacts per page",
+        "default": 10
+      },
+      "pageNum": {
+        "type": "integer",
+        "description": "Page number to retrieve",
+        "default": 1
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "contacts": {
+        "type": "array"
+      },
+      "totalCount": {
+        "type": "integer"
+      }
+    }
+  }
+}

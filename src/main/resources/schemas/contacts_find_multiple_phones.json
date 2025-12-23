@@ -1,0 +1,25 @@
+{
+  "description": "Find contact with multiple phone numbers",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "extId": {
+        "type": "string",
+        "description": "External ID"
+      },
+      "phoneNumbers": {
+        "type": "string",
+        "description": "Comma-separated list of phone numbers"
+      }
+    },
+    "required": ["phoneNumbers"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "contacts": {
+        "type": "array"
+      }
+    }
+  }
+}

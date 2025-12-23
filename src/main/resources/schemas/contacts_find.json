@@ -1,0 +1,28 @@
+{
+  "description": "Find a contact by external ID, phone number, or email",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "extId": {
+        "type": "string",
+        "description": "External ID of the contact"
+      },
+      "phoneNumber": {
+        "type": "string",
+        "description": "Phone number to search for"
+      },
+      "email": {
+        "type": "string",
+        "description": "Email address to search for"
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "contact": {
+        "type": "object"
+      }
+    }
+  }
+}
