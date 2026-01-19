@@ -15,7 +15,30 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(del mcp-server.mcpb)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(set SECURITY_MODE=local)",
+      "Bash(set SPRING_PROFILES_ACTIVE=local:*)",
+      "Bash(timeout 25 mvn spring-boot:run)",
+      "Bash(timeout 30 mvn spring-boot:run:*)",
+      "Bash(timeout 30 java:*)",
+      "Bash(timeout 3 ping:*)",
+      "Bash(mvn test:*)",
+      "Bash(mvn clean compile:*)",
+      "Bash(find:*)",
+      "Bash(dir /s /b \"C:\\Users\\riaz8\\OneDrive\\Textellent\\Code\\app\\starbucks\\src\\main\\java\\com\\starbucks\\amazon\\beans\")",
+      "Bash(set SECURITY_MODE=oauth2)",
+      "Bash(set:*)",
+      "Bash(set TEXTELLENT_API_BASE_URL=http://localhost:8080)",
+      "Bash(deploy-local-oauth2.bat)",
+      "Bash(call deploy-local-oauth2.bat)",
+      "Bash(cmd //c deploy-local-oauth2.bat)",
+      "Bash(timeout 5 ping:*)",
+      "Bash(wmic process:*)",
+      "Bash(java -jar:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(ls:*)",
+      "Bash(git mv:*)"
     ]
   }
 }

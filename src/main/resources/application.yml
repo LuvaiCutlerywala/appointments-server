@@ -1,5 +1,5 @@
 server:
-  port: 9090
+  port: ${PORT:9090}
   servlet:
     context-path: /
 
@@ -13,27 +13,100 @@ spring:
       write-dates-as-timestamps: false
       indent-output: true
 
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
 # Textellent API Configuration
 textellent:
   api:
-    # Local backend configuration - change this to point to your API backend
-    base-url: http://localhost:8080
-    timeout: 30000
-    # For production, use: https://client.textellent.com
+    base-url: ${TEXTELLENT_API_BASE_URL:http://localhost:8080}
+    timeout: ${TEXTELLENT_API_TIMEOUT:30000}
 
-    # These should be provided via environment variables or external configuration
-    # authCode: ${TEXTELLENT_AUTH_CODE}
-    # partnerClientCode: ${TEXTELLENT_PARTNER_CLIENT_CODE}
+# Security Configuration
+security:
+  mode: ${SECURITY_MODE:oauth2}  # Options: oauth2, apikey, local
+
+  # OAuth2 JWT Configuration
+  oauth2:
+    resourceserver:
+      jwt:
+        issuer-uri: ${OAUTH2_ISSUER_URI:}
+        jwk-set-uri: ${OAUTH2_JWK_SET_URI:}
+        signing-key: ${OAUTH2_JWT_SIGNING_KEY:textellent.123}
+
+  # API Key Configuration (when mode=apikey)
+  api-key: ${API_KEY:}
+  api-key-scopes: ${API_KEY_SCOPES:textellent.read,textellent.write}
+
+  # CORS Configuration
+  # Note: Cannot use * with credentials=true, must specify explicit origins
+  # Includes origins for: test page, OAuth server, MCP server, Claude Desktop
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080,http://localhost:9090,http://localhost:*,https://localhost:*,https://chatgpt.com,https://*.chatgpt.com}
+
+# Rate Limiting Configuration
+ratelimit:
+  read:
+    capacity: ${RATELIMIT_READ_CAPACITY:100}
+    refill-tokens: ${RATELIMIT_READ_REFILL:100}
+    refill-duration-minutes: ${RATELIMIT_READ_DURATION:1}
+  write:
+    capacity: ${RATELIMIT_WRITE_CAPACITY:20}
+    refill-tokens: ${RATELIMIT_WRITE_REFILL:20}
+    refill-duration-minutes: ${RATELIMIT_WRITE_DURATION:1}
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      textellent-api:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 10s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 5s
+
+  retry:
+    instances:
+      textellent-api:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 # Logging Configuration
 logging:
   level:
-    root: INFO
-    com.textellent.mcp: DEBUG
-    org.springframework.web: DEBUG
+    root: ${LOG_LEVEL:INFO}
+    com.textellent.mcp: ${LOG_LEVEL_MCP:DEBUG}
+    org.springframework.web: ${LOG_LEVEL_SPRING:INFO}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:DEBUG}
+    org.springframework.security.oauth2: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%X{traceId}] [%X{tenantId}] [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%X{traceId}] [%X{tenantId}] [%thread] %-5level %logger{36} - %msg%n"
 
 # MCP Configuration
 mcp:
@@ -41,3 +114,4 @@ mcp:
     name: textellent-mcp-server
     version: 1.0.0
     description: MCP Server exposing Textellent REST APIs
+    protocol-version: 2025-06-18

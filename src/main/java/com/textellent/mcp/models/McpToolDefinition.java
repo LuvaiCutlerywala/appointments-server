@@ -20,6 +20,15 @@ public class McpToolDefinition {
     @JsonProperty("outputSchema")
     private Map<String, Object> outputSchema;
 
+    @JsonProperty("readOnly")
+    private Boolean readOnly;
+
+    @JsonProperty("destructive")
+    private Boolean destructive;
+
+    @JsonProperty("requiredScope")
+    private String requiredScope;
+
     public McpToolDefinition() {
     }
 
@@ -28,6 +37,17 @@ public class McpToolDefinition {
         this.description = description;
         this.inputSchema = inputSchema;
         this.outputSchema = outputSchema;
+    }
+
+    public McpToolDefinition(String name, String description, Map<String, Object> inputSchema,
+                            Map<String, Object> outputSchema, Boolean readOnly, Boolean destructive, String requiredScope) {
+        this.name = name;
+        this.description = description;
+        this.inputSchema = inputSchema;
+        this.outputSchema = outputSchema;
+        this.readOnly = readOnly;
+        this.destructive = destructive;
+        this.requiredScope = requiredScope;
     }
 
     public String getName() {
@@ -60,5 +80,29 @@ public class McpToolDefinition {
 
     public void setOutputSchema(Map<String, Object> outputSchema) {
         this.outputSchema = outputSchema;
+    }
+
+    public Boolean getReadOnly() {
+        return readOnly;
+    }
+
+    public void setReadOnly(Boolean readOnly) {
+        this.readOnly = readOnly;
+    }
+
+    public Boolean getDestructive() {
+        return destructive;
+    }
+
+    public void setDestructive(Boolean destructive) {
+        this.destructive = destructive;
+    }
+
+    public String getRequiredScope() {
+        return requiredScope;
+    }
+
+    public void setRequiredScope(String requiredScope) {
+        this.requiredScope = requiredScope;
     }
 }

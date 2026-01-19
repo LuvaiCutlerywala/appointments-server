@@ -1,220 +1,397 @@
 # Textellent MCP Server
 
-A standalone Spring Boot microservice that exposes Textellent's REST APIs through the **Model Context Protocol (MCP)** using JSON-RPC 2.0.
+A production-ready Spring Boot microservice that exposes Textellent's REST APIs through the **Model Context Protocol (MCP)** using JSON-RPC 2.0 over HTTPS.
 
-## Overview
-
-This MCP server acts as a bridge between AI agents (like Claude Desktop) and Textellent's existing REST API endpoints. It implements the Model Context Protocol over HTTP, allowing AI agents to discover and execute Textellent API operations as MCP tools.
+Designed for deployment as a **public, remote MCP connector** compatible with Claude Connectors, ChatGPT Apps (MCP), n8n, and other MCP-compatible platforms.
 
 ## Features
 
+### Core Capabilities
 - **32 MCP Tools** exposing Textellent's complete API surface
-- **JSON-RPC 2.0** compliant MCP implementation
-- **JSON Schema Validation** for tool arguments using Everit
-- **WebClient-based** HTTP calls to Textellent API
-- **Global Exception Handling** with standardized error responses
-- **Health Check Endpoint** for monitoring
-- **Production-ready** Spring Boot 2.4.5 application
+- **MCP Protocol 2025-06-18** compliant implementation
+- **Streamable HTTP Transport** with JSON-RPC 2.0
+- **SSE Support** for streaming events (optional)
+- **JSON Schema Validation** for all tool arguments
 
-## Project Structure
+### Security & Authorization
+- **OAuth2 Resource Server** with JWT validation
+- **Scope-based Access Control**:
+  - `textellent.read` - Read-only operations
+  - `textellent.write` - Write/mutating operations
+- **API Key Authentication** (alternative mode)
+- **Multi-tenant Isolation** via JWT claims
+- **CORS Configuration** for web clients
 
-```
-mcp-server/
-├── pom.xml
-├── README.md
-├── .gitignore
-└── src/
-    └── main/
-        ├── java/com/textellent/mcp/
-        │   ├── TextellentMcpServerApplication.java
-        │   ├── controller/
-        │   │   └── McpController.java
-        │   ├── registry/
-        │   │   ├── McpToolHandler.java
-        │   │   └── McpToolRegistry.java
-        │   ├── models/
-        │   │   ├── McpRpcRequest.java
-        │   │   ├── McpRpcResponse.java
-        │   │   ├── McpToolDefinition.java
-        │   │   └── McpToolCallRequest.java
-        │   ├── services/
-        │   │   ├── MessageApiService.java
-        │   │   ├── ContactApiService.java
-        │   │   ├── TagApiService.java
-        │   │   ├── AppointmentApiService.java
-        │   │   ├── CallbackEventApiService.java
-        │   │   └── ConfigurationApiService.java
-        │   ├── config/
-        │   │   ├── TextellentApiConfig.java
-        │   │   └── WebClientConfig.java
-        │   └── exception/
-        │       └── GlobalExceptionHandler.java
-        └── resources/
-            ├── application.yml
-            └── schemas/
-                ├── messages_send.json
-                ├── contacts_*.json
-                ├── tags_*.json
-                ├── appointments_*.json
-                ├── events_*.json
-                └── webhook_*.json
-```
+### Operational Excellence
+- **Rate Limiting** (separate limits for read/write operations)
+- **Circuit Breaker & Retries** for resilience
+- **Structured Logging** with correlation IDs
+- **Audit Logging** for all tool calls
+- **Health Checks** and metrics (Spring Actuator)
+- **Prometheus Metrics** for monitoring
 
-## Prerequisites
+### Tool Safety Metadata
+- **Read-Only Hints** for non-mutating tools
+- **Destructive Hints** for dangerous operations
+- **Required Scope** annotations per tool
+- **Tool Categorization** in listings
 
-- **Java 8** or higher
-- **Maven 3.6+**
-- **Textellent API Credentials:**
-  - `authCode`
-  - `partnerClientCode`
+## Quick Start
 
-## Building the Project
+### Local Development
 
 ```bash
-mvn clean package
-```
+# Clone and configure
+git clone <repo-url>
+cd mcp-server
+cp .env.example .env
 
-This creates an executable JAR: `target/textellent-mcp-server-1.0.0.jar`
+# Edit .env for local mode
+echo "SECURITY_MODE=local" >> .env
+echo "SPRING_PROFILES_ACTIVE=local" >> .env
 
-## Running the Server
-
-### Using Maven
-
-```bash
+# Build and run
+mvn clean package -DskipTests
 mvn spring-boot:run
+
+# Test
+curl http://localhost:9090/health
+curl http://localhost:9090/version
 ```
 
-### Using JAR
+### Docker Deployment
 
 ```bash
-java -jar target/textellent-mcp-server-1.0.0.jar
+# Build image
+docker build -t textellent-mcp-server:latest .
+
+# Run with docker-compose
+cp .env.example .env
+# Edit .env with production settings
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
 ```
 
-The server starts on **http://localhost:9090**
+### Production Deployment
 
-## Configuration
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for comprehensive guides on:
+- Kubernetes deployment
+- Cloud platforms (AWS, GCP, Azure)
+- OAuth2 configuration
+- Connector setup for Claude/ChatGPT/n8n
+- Monitoring and troubleshooting
 
-### Connecting to Your API Backend
+## Architecture
 
-The MCP server needs to know where your Textellent API backend is running. Edit `src/main/resources/application.yml`:
+### Deployment Architecture
+
+```
+┌─────────────────────────────────────────┐
+│        AI Platforms                     │
+│   - Claude Connectors                   │
+│   - ChatGPT Apps                        │
+│   - n8n MCP Client                      │
+│   - Custom MCP Clients                  │
+└──────────────┬──────────────────────────┘
+               │
+               │ HTTPS (MCP over HTTP)
+               │ OAuth2 JWT / API Key
+               │
+               ▼
+┌──────────────────────────────────────────┐
+│     Load Balancer / API Gateway          │
+│   - TLS Termination                      │
+│   - DDoS Protection                      │
+│   - Rate Limiting (L7)                   │
+└──────────────┬───────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────┐
+│   Textellent MCP Server (Instances)      │
+│                                          │
+│   ┌────────────────────────────────┐    │
+│   │  Security Layer                │    │
+│   │  - OAuth2 JWT Validation       │    │
+│   │  - Scope Enforcement           │    │
+│   │  - Tenant Isolation            │    │
+│   └────────────┬───────────────────┘    │
+│                │                         │
+│   ┌────────────▼───────────────────┐    │
+│   │  MCP Controller                │    │
+│   │  - JSON-RPC Router             │    │
+│   │  - Rate Limiter                │    │
+│   │  - Audit Logger                │    │
+│   └────────────┬───────────────────┘    │
+│                │                         │
+│   ┌────────────▼───────────────────┐    │
+│   │  Tool Registry                 │    │
+│   │  - 32 Tool Definitions         │    │
+│   │  - Safety Metadata             │    │
+│   │  - Schema Validation           │    │
+│   └────────────┬───────────────────┘    │
+│                │                         │
+│   ┌────────────▼───────────────────┐    │
+│   │  Resilience Layer              │    │
+│   │  - Circuit Breaker             │    │
+│   │  - Retry Logic                 │    │
+│   │  - Timeout Management          │    │
+│   └────────────┬───────────────────┘    │
+└────────────────┼────────────────────────┘
+                 │
+                 ▼
+┌──────────────────────────────────────────┐
+│     Textellent API Backend               │
+│   (Your existing REST API)               │
+└──────────────────────────────────────────┘
+```
+
+### Request Flow
+
+```
+1. Client Request
+   ├─→ MCP-Protocol-Version header check
+   ├─→ OAuth2 JWT validation
+   └─→ Extract tenant context from JWT
+
+2. Authorization
+   ├─→ Check required scope for tool
+   ├─→ Enforce read vs write permissions
+   └─→ Rate limit check (tenant-specific)
+
+3. Tool Execution
+   ├─→ Validate arguments against JSON schema
+   ├─→ Execute tool via registry
+   ├─→ Apply circuit breaker & retries
+   └─→ Call Textellent backend API
+
+4. Response
+   ├─→ Format as MCP-compliant content
+   ├─→ Log audit event
+   └─→ Return JSON-RPC response
+```
+
+## API Endpoints
+
+### MCP Protocol Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/mcp` | Required | Main MCP JSON-RPC endpoint |
+| GET | `/mcp/sse` | Required | SSE event stream (optional) |
+| GET | `/health` | Public | Health check |
+| GET | `/version` | Public | Version information |
+| GET | `/actuator/health` | Auth | Detailed health |
+| GET | `/actuator/metrics` | Auth | Metrics |
+| GET | `/actuator/prometheus` | Auth | Prometheus metrics |
+
+### MCP Methods
+
+| Method | Description | Auth Required |
+|--------|-------------|---------------|
+| `initialize` | Protocol handshake | No |
+| `tools/list` | List available tools | Yes (read scope) |
+| `tools/call` | Execute a tool | Yes (tool-specific) |
+| `notifications/*` | Client notifications | No |
+
+## Available Tools (32 Total)
+
+### Messages (1)
+- `messages_send` - Send SMS/MMS (**write**, destructive:false)
+
+### Contacts (7)
+- `contacts_add` - Add contacts (**write**, destructive:false)
+- `contacts_update` - Update contact (**write**, destructive:false)
+- `contacts_get_all` - List contacts (**read**, readonly:true)
+- `contacts_get` - Get contact details (**read**, readonly:true)
+- `contacts_delete` - Delete contact (**write**, destructive:true)
+- `contacts_find_multiple_phones` - Find by phones (**read**, readonly:true)
+- `contacts_find` - Find contact (**read**, readonly:true)
+
+### Tags (7)
+- `tags_create` - Create tag (**write**, destructive:false)
+- `tags_update` - Update tag (**write**, destructive:false)
+- `tags_get` - Get tag details (**read**, readonly:true)
+- `tags_get_all` - List all tags (**read**, readonly:true)
+- `tags_assign_contacts` - Assign contacts to tag (**write**, destructive:false)
+- `tags_delete` - Delete tag (**write**, destructive:true)
+- `tags_remove_contacts` - Remove contacts from tag (**write**, destructive:true)
+
+### Appointments (3)
+- `appointments_create` - Create appointment (**write**, destructive:false)
+- `appointments_update` - Update appointment (**write**, destructive:false)
+- `appointments_cancel` - Cancel appointment (**write**, destructive:true)
+
+### Events (11) - All **read-only**
+- `events_incoming_message` - Get incoming messages
+- `events_outgoing_delivery_status` - Get delivery status
+- `events_new_contact_details` - Get new contacts
+- `events_phone_added_wrong_number` - Get wrong number events
+- `events_phone_added_dnt` - Get DNT additions
+- `events_phone_removed_dnt` - Get DNT removals
+- `events_associate_contact_tag` - Get tag associations
+- `events_disassociate_contact_tag` - Get tag disassociations
+- `events_appointment_created` - Get appointment creations
+- `events_appointment_updated` - Get appointment updates
+- `events_appointment_canceled` - Get appointment cancellations
+
+### Configuration (3)
+- `webhook_subscribe` - Subscribe to webhooks (**write**, destructive:false)
+- `webhook_unsubscribe` - Unsubscribe (**write**, destructive:true)
+- `webhook_list_subscriptions` - List subscriptions (**read**, readonly:true)
+
+## Security Configuration
+
+### OAuth2 JWT Mode (Production)
 
 ```yaml
-server:
-  port: 9090  # MCP server port (different from your API backend)
-
-textellent:
-  api:
-    # Point this to your actual API backend
-    base-url: http://localhost:8080  # For local development
-    # base-url: https://client.textellent.com  # For production
-    timeout: 30000
+SECURITY_MODE=oauth2
+OAUTH2_ISSUER_URI=https://your-auth-provider.com/
+# OR
+OAUTH2_JWK_SET_URI=https://your-auth-provider.com/.well-known/jwks.json
 ```
 
-**Important Configuration Notes:**
+**JWT Requirements**:
+- Standard claims: `iss`, `sub`, `exp`, `iat`
+- Tenant claim: `tenant_id`, `tenantId`, or `organization_id`
+- Scope claim: `scope` (space-separated) or `scp` (array)
 
-1. **MCP Server Port** (`server.port: 9090`)
-   - This is where the MCP server listens for requests
-   - Changed to 9090 to avoid conflicts with your API backend on 8080
-
-2. **API Backend URL** (`textellent.api.base-url`)
-   - This is where the MCP server will call your Textellent REST APIs
-   - For local development: `http://localhost:8080`
-   - For production: `https://client.textellent.com`
-   - **The MCP server acts as a proxy/wrapper around your existing APIs**
-
-3. **Authentication Headers**
-   - Your API backend should handle `authCode` and `partnerClientCode` headers
-   - These are passed through from MCP clients to your backend
-
-## MCP Endpoints
-
-### 1. Health Check
-
-```bash
-GET /mcp/health
-```
-
-**Example:**
-```bash
-curl http://localhost:9090/mcp/health
-```
-
-**Response:**
+**Example JWT**:
 ```json
 {
-  "status": "UP",
-  "service": "textellent-mcp-server",
-  "version": "1.0.0",
-  "toolsRegistered": 32
+  "iss": "https://auth.yourcompany.com",
+  "sub": "user|123456",
+  "exp": 1735689600,
+  "iat": 1735686000,
+  "tenant_id": "acme-corp",
+  "scope": "textellent.read textellent.write"
 }
 ```
 
-### 2. MCP Protocol Endpoint
+### API Key Mode (Simple)
 
-```bash
-POST /mcp
+```yaml
+SECURITY_MODE=apikey
+API_KEY=your-secret-key-here
+API_KEY_SCOPES=textellent.read,textellent.write
 ```
 
-Handles JSON-RPC 2.0 requests for:
-- `tools/list` - List all available tools
-- `tools/call` - Execute a specific tool
-
-## Using the MCP Server
-
-### List All Available Tools
-
-**Request:**
+**Client Request**:
 ```bash
-curl -X POST http://localhost:9090/mcp \
+curl -X POST https://your-server.com/mcp \
+  -H "X-API-Key: your-secret-key-here" \
   -H "Content-Type: application/json" \
-  -H "authCode: YOUR_AUTH_CODE" \
-  -H "partnerClientCode: YOUR_PARTNER_CLIENT_CODE" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+### Local Mode (Development Only)
+
+```yaml
+SECURITY_MODE=local
+SPRING_PROFILES_ACTIVE=local
+```
+
+**⚠️ Warning**: Disables all security. Never use in production!
+
+## Usage Examples
+
+### Initialize Connection
+
+```bash
+curl -X POST https://mcp.yourcompany.com/mcp \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
   -d '{
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "tools/list",
+    "method": "initialize",
     "params": {}
   }'
 ```
 
-**Response:**
+Response:
 ```json
 {
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "tools": [
-      {
-        "name": "messages_send",
-        "description": "Send SMS/MMS using Textellent API",
-        "inputSchema": { ... },
-        "outputSchema": { ... }
-      },
-      {
-        "name": "contacts_add",
-        "description": "Add new contacts to Textellent",
-        "inputSchema": { ... },
-        "outputSchema": { ... }
-      },
-      ...
-    ]
+    "protocolVersion": "2025-06-18",
+    "capabilities": {
+      "tools": {}
+    },
+    "serverInfo": {
+      "name": "textellent-mcp-server",
+      "version": "1.0.0"
+    }
   }
 }
 ```
 
-### Call a Tool
+### List Available Tools
 
-#### Example 1: Send a Message
-
-**Request:**
 ```bash
-curl -X POST http://localhost:9090/mcp \
+curl -X POST https://mcp.yourcompany.com/mcp \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "authCode: YOUR_AUTH_CODE" \
-  -H "partnerClientCode: YOUR_PARTNER_CLIENT_CODE" \
+  -H "authCode: YOUR_TEXTELLENT_AUTH_CODE" \
   -d '{
     "jsonrpc": "2.0",
     "id": 2,
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+Response includes categorized tools:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "tools": [...],
+    "categorized": {
+      "readOnly": [...],
+      "write": [...]
+    },
+    "totalCount": 32
+  }
+}
+```
+
+### Call a Read-Only Tool
+
+```bash
+curl -X POST https://mcp.yourcompany.com/mcp \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "authCode: YOUR_TEXTELLENT_AUTH_CODE" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "contacts_get_all",
+      "arguments": {
+        "searchKey": "",
+        "pageSize": 10,
+        "pageNum": 1
+      }
+    }
+  }'
+```
+
+### Call a Write Tool
+
+```bash
+curl -X POST https://mcp.yourcompany.com/mcp \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "authCode: YOUR_TEXTELLENT_AUTH_CODE" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 4,
     "method": "tools/call",
     "params": {
       "name": "messages_send",
@@ -229,325 +406,235 @@ curl -X POST http://localhost:9090/mcp \
   }'
 ```
 
-**Response:**
+## Environment Variables
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `SECURITY_MODE` | Auth mode: oauth2, apikey, local | `oauth2` |
+| `TEXTELLENT_API_BASE_URL` | Backend API URL | `https://client.textellent.com` |
+
+### OAuth2 Configuration
+
+| Variable | Description |
+|----------|-------------|
+| `OAUTH2_ISSUER_URI` | OAuth2 issuer URI (auto-discovers JWKS) |
+| `OAUTH2_JWK_SET_URI` | Direct JWKS endpoint URL |
+
+### API Key Configuration
+
+| Variable | Description |
+|----------|-------------|
+| `API_KEY` | Secret API key |
+| `API_KEY_SCOPES` | Comma-separated scopes |
+
+### Optional
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `9090` | Server port |
+| `ALLOWED_ORIGINS` | `*` | CORS allowed origins |
+| `RATELIMIT_READ_CAPACITY` | `100` | Read ops/minute |
+| `RATELIMIT_WRITE_CAPACITY` | `20` | Write ops/minute |
+| `LOG_LEVEL` | `INFO` | Root log level |
+| `LOG_LEVEL_SECURITY` | `INFO` | Security log level |
+
+See `.env.example` for complete list.
+
+## Multi-Tenancy
+
+The server automatically extracts tenant context from JWT claims:
+
+1. **Tenant Identification**:
+   - `tenant_id` claim (preferred)
+   - `tenantId` claim (alternative)
+   - `organization_id` claim (alternative)
+
+2. **Tenant Isolation**:
+   - Separate rate limit buckets per tenant
+   - Tenant ID included in all audit logs
+   - Tenant context in structured logging (MDC)
+
+3. **Header Override** (API key mode):
+   ```bash
+   -H "X-Tenant-ID: custom-tenant-id"
+   ```
+
+## Rate Limiting
+
+### Configuration
+
+```yaml
+# Read operations (GET, LIST)
+RATELIMIT_READ_CAPACITY=100         # Max tokens
+RATELIMIT_READ_REFILL=100           # Tokens per refill
+RATELIMIT_READ_DURATION=1           # Refill interval (minutes)
+
+# Write operations (CREATE, UPDATE, DELETE)
+RATELIMIT_WRITE_CAPACITY=20
+RATELIMIT_WRITE_REFILL=20
+RATELIMIT_WRITE_DURATION=1
+```
+
+### Behavior
+
+- **Per-Tenant**: Each tenant has separate buckets
+- **Tool-Based**: Read tools check read limit, write tools check write limit
+- **Response**: HTTP 200 with JSON-RPC error `-32000` when exceeded
+
+## Audit Logging
+
+All tool calls are logged with:
+- Timestamp
+- Tenant ID
+- User ID
+- Trace ID (correlation)
+- Tool name
+- Status (SUCCESS/FAILURE)
+- Redacted arguments (sensitive fields masked)
+
+Example audit log:
 ```json
 {
-  "jsonrpc": "2.0",
-  "id": 2,
-  "result": {
-    "content": {
-      "statusCode": "200",
-      "message": "Message sent successfully",
-      "messageId": "12345"
-    },
-    "isError": false
+  "timestamp": "2025-01-15T10:30:45.123Z",
+  "event": "TOOL_CALL",
+  "tenantId": "acme-corp",
+  "userId": "user|123456",
+  "traceId": "abc-def-123",
+  "toolName": "messages_send",
+  "status": "SUCCESS",
+  "arguments": {
+    "text": "Hello",
+    "from": "+1234567890",
+    "authCode": "***REDACTED***"
   }
 }
 ```
 
-#### Example 2: Add Contacts
+## Monitoring
 
-**Request:**
+### Health Checks
+
 ```bash
-curl -X POST http://localhost:9090/mcp \
-  -H "Content-Type: application/json" \
-  -H "authCode: YOUR_AUTH_CODE" \
-  -H "partnerClientCode: YOUR_PARTNER_CLIENT_CODE" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "tools/call",
-    "params": {
-      "name": "contacts_add",
-      "arguments": {
-        "contacts": [
-          {
-            "contactFirstName": "John",
-            "contactLastName": "Doe",
-            "phoneMobile": "+15551234567",
-            "phoneHome": "",
-            "phoneWork": "",
-            "phoneAlternate": ""
-          }
-        ]
-      }
-    }
-  }'
+# Basic health
+curl https://mcp.yourcompany.com/health
+
+# Detailed health (requires auth)
+curl -H "Authorization: Bearer TOKEN" \
+  https://mcp.yourcompany.com/actuator/health
 ```
 
-#### Example 3: Get All Contacts
+### Metrics
 
-**Request:**
 ```bash
-curl -X POST http://localhost:9090/mcp \
-  -H "Content-Type: application/json" \
-  -H "authCode: YOUR_AUTH_CODE" \
-  -H "partnerClientCode: YOUR_PARTNER_CLIENT_CODE" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 4,
-    "method": "tools/call",
-    "params": {
-      "name": "contacts_get_all",
-      "arguments": {
-        "searchKey": "John",
-        "pageSize": 10,
-        "pageNum": 1
-      }
-    }
-  }'
+# All metrics
+curl -H "Authorization: Bearer TOKEN" \
+  https://mcp.yourcompany.com/actuator/metrics
+
+# Prometheus format
+curl -H "Authorization: Bearer TOKEN" \
+  https://mcp.yourcompany.com/actuator/prometheus
 ```
 
-#### Example 4: Create Appointment
+### Key Metrics
 
-**Request:**
-```bash
-curl -X POST http://localhost:9090/mcp \
-  -H "Content-Type: application/json" \
-  -H "authCode: YOUR_AUTH_CODE" \
-  -H "partnerClientCode: YOUR_PARTNER_CLIENT_CODE" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 5,
-    "method": "tools/call",
-    "params": {
-      "name": "appointments_create",
-      "arguments": {
-        "source": "ZOHO_BOOKING",
-        "extId": "RE-00353",
-        "appointmentData": {
-          "startDateTime": "2025-12-15 14:00:00",
-          "endDateTime": "2025-12-15 15:00:00",
-          "serviceName": "Tax Preparation",
-          "customerFirstName": "Jane",
-          "customerLastName": "Smith",
-          "customerEmail": "jane@example.com",
-          "phoneNumber": "+15551234567",
-          "timeZone": "America/New_York",
-          "notes": "Initial consultation",
-          "status": "upcoming"
-        }
-      }
-    }
-  }'
-```
-
-#### Example 5: Subscribe to Webhook
-
-**Request:**
-```bash
-curl -X POST http://localhost:9090/mcp \
-  -H "Content-Type: application/json" \
-  -H "authCode: YOUR_AUTH_CODE" \
-  -H "partnerClientCode: YOUR_PARTNER_CLIENT_CODE" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 6,
-    "method": "tools/call",
-    "params": {
-      "name": "webhook_subscribe",
-      "arguments": {
-        "target_url": "https://myapp.example.com/webhooks/textellent",
-        "event": "INCOMING_MESSAGE"
-      }
-    }
-  }'
-```
-
-## Available MCP Tools
-
-### Messages (1 tool)
-- `messages_send` - Send SMS/MMS
-
-### Contacts (7 tools)
-- `contacts_add` - Add new contacts
-- `contacts_update` - Update a contact
-- `contacts_get_all` - Get all contacts with search/pagination
-- `contacts_get` - Get a specific contact by ID
-- `contacts_delete` - Delete a contact
-- `contacts_find_multiple_phones` - Find contact by multiple phone numbers
-- `contacts_find` - Find contact by extId, phone, or email
-
-### Tags (7 tools)
-- `tags_create` - Create contact tags
-- `tags_update` - Update a tag
-- `tags_get` - Get a specific tag
-- `tags_get_all` - Get all tags
-- `tags_assign_contacts` - Assign contacts to a tag
-- `tags_delete` - Delete a tag
-- `tags_remove_contacts` - Remove contacts from a tag
-
-### Appointments (3 tools)
-- `appointments_create` - Create an appointment
-- `appointments_update` - Update an appointment
-- `appointments_cancel` - Cancel an appointment
-
-### Callback Events (11 tools)
-- `events_phone_added_wrong_number` - Get wrong number events
-- `events_outgoing_delivery_status` - Get delivery status events
-- `events_new_contact_details` - Get new contact events
-- `events_disassociate_contact_tag` - Get disassociate events
-- `events_incoming_message` - Get incoming message events
-- `events_phone_added_dnt` - Get DNT add events
-- `events_associate_contact_tag` - Get associate events
-- `events_appointment_created` - Get appointment created events
-- `events_appointment_updated` - Get appointment updated events
-- `events_appointment_canceled` - Get appointment canceled events
-- `events_phone_removed_dnt` - Get DNT removal events
-
-### Configuration (3 tools)
-- `webhook_subscribe` - Subscribe to webhook events
-- `webhook_unsubscribe` - Unsubscribe from webhook events
-- `webhook_list_subscriptions` - List all webhook subscriptions
-
-## How AI Agents Discover and Call Tools
-
-### Discovery Process
-
-1. **AI Agent Connects** to the MCP server at `http://localhost:9090/mcp`
-
-2. **Agent Calls `tools/list`** to discover available capabilities:
-   ```json
-   {
-     "jsonrpc": "2.0",
-     "method": "tools/list",
-     "id": 1
-   }
-   ```
-
-3. **Server Returns Tool Definitions** with schemas:
-   - Tool name and description
-   - Input schema (JSON Schema format)
-   - Output schema (JSON Schema format)
-
-4. **AI Agent Analyzes** user intent and matches it to available tools
-
-5. **Agent Calls `tools/call`** with the appropriate tool and arguments:
-   ```json
-   {
-     "jsonrpc": "2.0",
-     "method": "tools/call",
-     "id": 2,
-     "params": {
-       "name": "messages_send",
-       "arguments": { ... }
-     }
-   }
-   ```
-
-6. **Server Validates** arguments against the tool's input schema
-
-7. **Server Executes** the tool by calling the Textellent REST API
-
-8. **Server Returns** the result in MCP format
-
-### Example: Claude Desktop Integration
-
-Claude Desktop can connect to this MCP server to give Claude access to Textellent's API operations. When you ask Claude to "send a message to +15551234567", Claude will:
-
-1. Recognize this matches the `messages_send` tool
-2. Extract the required parameters
-3. Call the MCP server's `tools/call` method
-4. Return the result to you
-
-## Error Handling
-
-The server returns JSON-RPC 2.0 error responses:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "error": {
-    "code": -32602,
-    "message": "Invalid params: missing required field 'from'"
-  }
-}
-```
-
-### Error Codes
-
-- `-32700` - Parse error (invalid JSON)
-- `-32600` - Invalid request
-- `-32601` - Method not found
-- `-32602` - Invalid params
-- `-32603` - Internal error
-- `-32001` - Missing authCode header
-- `-32002` - Missing partnerClientCode header
-
-## Architecture
-
-### Tool Registry Pattern
-
-The `McpToolRegistry` maintains a mapping of tool names to handler functions:
-
-```java
-registerTool("messages_send", messageApiService::sendMessage);
-```
-
-### Service Layer
-
-Each service class (`MessageApiService`, `ContactApiService`, etc.) encapsulates calls to Textellent's REST endpoints using Spring WebClient.
-
-### Schema Validation
-
-Input arguments are validated against JSON schemas loaded from `src/main/resources/schemas/` using the Everit JSON Schema library.
+- `http.server.requests` - Request counts and latencies
+- `resilience4j.circuitbreaker.calls` - Circuit breaker stats
+- `resilience4j.retry.calls` - Retry attempts
+- `jvm.memory.used` - Memory usage
+- `system.cpu.usage` - CPU usage
 
 ## Development
 
-### Adding a New Tool
+### Prerequisites
 
-1. **Add Service Method** in the appropriate service class
-2. **Create JSON Schema** in `src/main/resources/schemas/`
-3. **Register Tool** in `McpToolRegistry.registerAllTools()`
+- Java 8+
+- Maven 3.6+
+- Docker (optional)
 
-### Running Tests
+### Build
+
+```bash
+mvn clean package
+```
+
+### Run Tests
 
 ```bash
 mvn test
 ```
 
-## Deployment
-
-### Docker (Optional)
-
-Create a `Dockerfile`:
-
-```dockerfile
-FROM openjdk:8-jdk-alpine
-COPY target/textellent-mcp-server-1.0.0.jar app.jar
-ENTRYPOINT ["java", "-jar", "/app.jar"]
-```
-
-Build and run:
+### Run Locally
 
 ```bash
-docker build -t textellent-mcp-server .
-docker run -p 8080:8080 textellent-mcp-server
+# With Maven
+mvn spring-boot:run
+
+# With JAR
+java -jar target/textellent-mcp-server-1.0.0.jar
 ```
 
-## Security Considerations
+### IDE Setup
 
-- **API Credentials**: Never commit `authCode` or `partnerClientCode` to version control
-- **Environment Variables**: Use environment variables or external configuration
-- **HTTPS**: Deploy behind a reverse proxy with HTTPS in production
-- **Rate Limiting**: Consider adding rate limiting for production use
+1. Import as Maven project
+2. Enable Lombok annotation processing
+3. Set Java SDK to 8 or higher
+
+## Deployment
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for detailed guides on:
+
+- **Docker** - Container deployment
+- **Kubernetes** - Scalable cluster deployment
+- **AWS ECS/Fargate** - Serverless containers
+- **Google Cloud Run** - Managed containers
+- **Azure Container Instances** - Quick deployment
+
+## Connector Integration
+
+### Claude Connectors
+
+Submit to Claude Directory with:
+- Endpoint: `https://your-server.com/mcp`
+- Protocol: MCP over HTTPS
+- Auth: OAuth2 with PKCE
+- Scopes: `textellent.read`, `textellent.write`
+
+### ChatGPT Apps (MCP)
+
+Configure GPT Action with OpenAPI spec pointing to `/mcp` endpoint.
+
+### n8n MCP Client
+
+Use HTTP Request node with:
+- POST to `/mcp`
+- OAuth2 authentication
+- JSON-RPC 2.0 request body
+
+See [DEPLOYMENT.md](DEPLOYMENT.md#connector-setup) for detailed setup instructions.
 
 ## Troubleshooting
 
-### Server won't start
-- Check if port 8080 is available
-- Verify Java 8+ is installed: `java -version`
+### Common Issues
 
-### Tool calls fail
-- Verify `authCode` and `partnerClientCode` headers are correct
-- Check Textellent API endpoint availability
-- Review server logs for detailed error messages
+**401 Unauthorized**
+- Check JWT token validity and expiration
+- Verify issuer URI matches token issuer
 
-### Schema validation errors
-- Ensure all required fields are provided
-- Check field types match the schema
-- Review the specific tool's JSON schema in `src/main/resources/schemas/`
+**403 Forbidden**
+- User lacks required scope
+- Check `requiredScope` in tool definition
+
+**429 Rate Limit Exceeded**
+- Adjust rate limits or implement backoff
+- Check tenant-specific limits
+
+**Connection Refused**
+- Verify `TEXTELLENT_API_BASE_URL`
+- Ensure backend API is accessible
+
+See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting) for more details.
 
 ## License
 
@@ -555,11 +642,14 @@ Copyright © 2025 Textellent. All rights reserved.
 
 ## Support
 
-For issues or questions:
-- Check server logs in the console output
-- Review the Health Check endpoint: `GET /mcp/health`
-- Verify Textellent API credentials and permissions
+- **Documentation**: [DEPLOYMENT.md](DEPLOYMENT.md), [CONFIGURATION.md](CONFIGURATION.md)
+- **Logs**: Check structured logs with trace IDs
+- **Health**: Monitor `/actuator/health` endpoint
+- **Metrics**: View `/actuator/prometheus` for insights
 
 ---
 
-**Built with Spring Boot 2.4.5 | Java 8 | Model Context Protocol**
+**Version**: 1.0.0
+**MCP Protocol**: 2025-06-18
+**Spring Boot**: 2.4.5
+**Java**: 8+

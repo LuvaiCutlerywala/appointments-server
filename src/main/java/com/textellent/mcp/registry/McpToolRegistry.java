@@ -142,6 +142,9 @@ public class McpToolRegistry {
                         toolDef.setInputSchema((Map<String, Object>) schemaMap.get("inputSchema"));
                         toolDef.setOutputSchema((Map<String, Object>) schemaMap.get("outputSchema"));
 
+                        // Set safety metadata based on tool type
+                        configureSafetyMetadata(toolName, toolDef);
+
                         toolDefinitions.put(toolName, toolDef);
 
                         // Load JSON schema validator for input validation
@@ -203,5 +206,39 @@ public class McpToolRegistry {
      */
     public boolean hasTool(String toolName) {
         return handlers.containsKey(toolName);
+    }
+
+    /**
+     * Get a specific tool definition by name.
+     */
+    public McpToolDefinition getToolDefinition(String toolName) {
+        return toolDefinitions.get(toolName);
+    }
+
+    /**
+     * Configure safety metadata for a tool based on its name and function.
+     */
+    private void configureSafetyMetadata(String toolName, McpToolDefinition toolDef) {
+        // Read-only tools (GET operations, list operations)
+        if (toolName.startsWith("contacts_get") || toolName.startsWith("tags_get") ||
+            toolName.startsWith("events_") || toolName.equals("webhook_list_subscriptions") ||
+            toolName.equals("contacts_find") || toolName.equals("contacts_find_multiple_phones")) {
+            toolDef.setReadOnly(true);
+            toolDef.setDestructive(false);
+            toolDef.setRequiredScope("read"); // Changed from textellent.read to match OAuth2 scopes
+        }
+        // Destructive tools (DELETE operations)
+        else if (toolName.contains("_delete") || toolName.contains("_cancel") ||
+                 toolName.equals("webhook_unsubscribe") || toolName.equals("tags_remove_contacts")) {
+            toolDef.setReadOnly(false);
+            toolDef.setDestructive(true);
+            toolDef.setRequiredScope("write"); // Changed from textellent.write to match OAuth2 scopes
+        }
+        // Write tools (CREATE/UPDATE operations)
+        else {
+            toolDef.setReadOnly(false);
+            toolDef.setDestructive(false);
+            toolDef.setRequiredScope("write"); // Changed from textellent.write to match OAuth2 scopes
+        }
     }
 }
