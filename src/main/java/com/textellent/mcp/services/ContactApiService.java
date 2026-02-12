@@ -135,7 +135,6 @@ public class ContactApiService {
                         return response;
                     }
 
-                    // Handle response format with "text" field
                     JsonNode dataNode = rootNode;
                     if (rootNode.has("text")) {
                         logger.info("Response has 'text' field, parsing as JSON");
@@ -143,16 +142,24 @@ public class ContactApiService {
                         dataNode = mapper.readTree(textContent);
                     }
 
-                    JsonNode contactsNode = dataNode.get("contacts");
-                    JsonNode totalCountNode = dataNode.get("totalCount");
+                    if (dataNode.has("data")) {
+                        dataNode = dataNode.get("data");
+                    }
+
+                    JsonNode contactsNode;
+                    JsonNode totalCountNode = null;
+                    if (dataNode.isArray()) {
+                        contactsNode = dataNode;
+                    } else {
+                        contactsNode = dataNode.get("contacts");
+                        totalCountNode = dataNode.get("totalCount");
+                    }
 
                     if (contactsNode != null && contactsNode.isArray()) {
-                        // Extract ONLY name and phone to reduce response size
                         List<Map<String, String>> simplifiedContacts = new ArrayList<>();
                         for (JsonNode contact : contactsNode) {
                             Map<String, String> simpleContact = new HashMap<>();
 
-                            // Extract name (first + last)
                             JsonNode firstNameNode = contact.get("firstName");
                             JsonNode lastNameNode = contact.get("lastName");
                             String name = "";
@@ -165,25 +172,32 @@ public class ContactApiService {
                             }
                             simpleContact.put("name", name);
 
-                            // Extract phone
                             JsonNode phoneNode = contact.get("phoneNumber");
+                            if (phoneNode == null) {
+                                phoneNode = contact.get("mobile");
+                            }
                             if (phoneNode != null) {
                                 simpleContact.put("phone", phoneNode.asText());
+                            }
+
+                            JsonNode idNode = contact.get("id");
+                            if (idNode != null) {
+                                simpleContact.put("id", idNode.asText());
                             }
 
                             simplifiedContacts.add(simpleContact);
                         }
 
-                        // Build simplified response
                         Map<String, Object> simplifiedResponse = new HashMap<>();
                         simplifiedResponse.put("contacts", simplifiedContacts);
-                        simplifiedResponse.put("totalCount", totalCountNode != null ? totalCountNode.asInt() : simplifiedContacts.size());
+                        int totalCount = totalCountNode != null ? totalCountNode.asInt() : simplifiedContacts.size();
+                        simplifiedResponse.put("totalCount", totalCount);
                         simplifiedResponse.put("pageSize", pageSize);
                         simplifiedResponse.put("pageNum", pageNum);
 
                         logger.info("Returning {} simplified contacts out of {} total (page {}/{})",
                             simplifiedContacts.size(),
-                            totalCountNode != null ? totalCountNode.asInt() : 0,
+                            totalCount,
                             pageNum,
                             pageSize);
 
@@ -245,7 +259,6 @@ public class ContactApiService {
                         return response;
                     }
 
-                    // Handle response format with "text" field
                     JsonNode dataNode = rootNode;
                     if (rootNode.has("text")) {
                         logger.info("Response has 'text' field, parsing as JSON");
@@ -253,22 +266,26 @@ public class ContactApiService {
                         dataNode = mapper.readTree(textContent);
                     }
 
-                    JsonNode totalCountNode = dataNode.get("totalCount");
-                    JsonNode contactsNode = dataNode.get("contacts");
+                    if (dataNode.has("data")) {
+                        dataNode = dataNode.get("data");
+                    }
+
+                    JsonNode contactsNode;
+                    JsonNode totalCountNode = null;
+                    if (dataNode.isArray()) {
+                        contactsNode = dataNode;
+                    } else {
+                        contactsNode = dataNode.get("contacts");
+                        totalCountNode = dataNode.get("totalCount");
+                    }
 
                     Map<String, Object> summaryResponse = new HashMap<>();
 
-                    // Add total count
-                    int totalCount = totalCountNode != null ? totalCountNode.asInt() : 0;
-                    summaryResponse.put("totalCount", totalCount);
-
-                    // Extract simplified contacts (name + phone only)
                     List<Map<String, String>> simplifiedContacts = new ArrayList<>();
                     if (contactsNode != null && contactsNode.isArray()) {
                         for (JsonNode contact : contactsNode) {
                             Map<String, String> simpleContact = new HashMap<>();
 
-                            // Extract name (first + last)
                             JsonNode firstNameNode = contact.get("firstName");
                             JsonNode lastNameNode = contact.get("lastName");
                             String name = "";
@@ -281,16 +298,25 @@ public class ContactApiService {
                             }
                             simpleContact.put("name", name.trim());
 
-                            // Extract phone
                             JsonNode phoneNode = contact.get("phoneNumber");
+                            if (phoneNode == null) {
+                                phoneNode = contact.get("mobile");
+                            }
                             if (phoneNode != null) {
                                 simpleContact.put("phone", phoneNode.asText());
+                            }
+
+                            JsonNode idNode = contact.get("id");
+                            if (idNode != null) {
+                                simpleContact.put("id", idNode.asText());
                             }
 
                             simplifiedContacts.add(simpleContact);
                         }
                     }
 
+                    int totalCount = totalCountNode != null ? totalCountNode.asInt() : simplifiedContacts.size();
+                    summaryResponse.put("totalCount", totalCount);
                     summaryResponse.put("contacts", simplifiedContacts);
                     summaryResponse.put("hasMore", totalCount > 10);
 

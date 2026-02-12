@@ -31,10 +31,14 @@
     "properties": {
       "contacts": {
         "type": "array",
-        "description": "Array of simplified contact objects (name and phone only, not full contact details). This prevents hallucination by keeping response minimal.",
+        "description": "Array of simplified contact objects (id, name and phone only, not full contact details). This prevents hallucination by keeping response minimal while still allowing follow-up operations like delete/update.",
         "items": {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "Internal contact identifier (needed for follow-up operations like contacts_delete)."
+            },
             "name": {
               "type": "string",
               "description": "Contact's full name (first + last)"

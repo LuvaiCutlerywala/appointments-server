@@ -22,10 +22,14 @@
       },
       "contacts": {
         "type": "array",
-        "description": "First 10 contacts (simplified: name and phone only). Use contacts_get_all with pagination if you need more.",
+        "description": "First 10 contacts (simplified: id, name and phone only). Use contacts_get_all with pagination if you need more.",
         "items": {
           "type": "object",
           "properties": {
+            "id": {
+              "type": "string",
+              "description": "Internal contact identifier (needed for follow-up operations like contacts_delete)."
+            },
             "name": { "type": "string" },
             "phone": { "type": "string" }
           }
