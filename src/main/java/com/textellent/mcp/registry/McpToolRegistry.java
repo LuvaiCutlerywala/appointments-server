@@ -28,6 +28,13 @@ public class McpToolRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(McpToolRegistry.class);
 
+    /**
+     * Planner / commit tools that are directly visible to the model.
+     * All other tools are transaction-only and must be accessed via the action plan system.
+     */
+    private static final Set<String> PLANNER_COMMIT_TOOLS = new HashSet<>(
+            Arrays.asList("list_actions", "action_list", "execute", "execute_continue", "release_resource"));
+
     private final Map<String, McpToolHandler> handlers = new HashMap<>();
     private final Map<String, McpToolDefinition> toolDefinitions = new HashMap<>();
     private final Map<String, Schema> schemas = new HashMap<>();
@@ -66,9 +73,12 @@ public class McpToolRegistry {
      * Register all MCP tools with their handlers.
      */
     private void registerAllTools() {
-        // Action list tools
-        registerTool("action_list", actionListService::getActionList);
+        // Action list / planner / commit tools
         registerTool("list_actions", actionListService::listActions);
+        registerTool("action_list", actionListService::setActionList);
+        registerTool("execute", actionListService::executePlan);
+        registerTool("execute_continue", actionListService::executeContinue);
+        registerTool("release_resource", actionListService::releaseResource);
 
         // Message tools
         registerTool("messages_send", messageApiService::sendMessage);
@@ -199,17 +209,6 @@ public class McpToolRegistry {
     }
 
     /**
-     * Validate arguments against the tool's input schema.
-     */
-    private void validateArguments(String toolName, Map<String, Object> arguments) throws ValidationException {
-        Schema schema = schemas.get(toolName);
-        if (schema != null && arguments != null) {
-            JSONObject jsonObject = new JSONObject(arguments);
-            schema.validate(jsonObject);
-        }
-    }
-
-    /**
      * Check if a tool exists in the registry.
      */
     public boolean hasTool(String toolName) {
@@ -221,6 +220,17 @@ public class McpToolRegistry {
      */
     public McpToolDefinition getToolDefinition(String toolName) {
         return toolDefinitions.get(toolName);
+    }
+
+    /**
+     * Validate arguments against the tool's input schema.
+     */
+    private void validateArguments(String toolName, Map<String, Object> arguments) throws ValidationException {
+        Schema schema = schemas.get(toolName);
+        if (schema != null && arguments != null) {
+            JSONObject jsonObject = new JSONObject(arguments);
+            schema.validate(jsonObject);
+        }
     }
 
     /**
@@ -248,5 +258,46 @@ public class McpToolRegistry {
             toolDef.setDestructive(false);
             toolDef.setRequiredScope("write"); // Changed from textellent.write to match OAuth2 scopes
         }
+
+        // Planner/commit tools: do not require scopes (discovery + orchestration only)
+        if (PLANNER_COMMIT_TOOLS.contains(toolName)) {
+            toolDef.setRequiredScope(null);
+        }
+    }
+
+    /**
+     * Returns the set of transaction-only tool names (all non-planner/commit tools).
+     * Only discoverable via list_actions.
+     */
+    public Set<String> getTransactionOnlyToolNames() {
+        Set<String> names = new HashSet<>();
+        for (McpToolDefinition def : toolDefinitions.values()) {
+            String name = def.getName();
+            if (name != null && !PLANNER_COMMIT_TOOLS.contains(name)) {
+                names.add(name);
+            }
+        }
+        return names;
+    }
+
+    /**
+     * Returns definitions for transaction-only tools (for list_actions catalog).
+     */
+    public List<McpToolDefinition> getTransactionOnlyToolDefinitions() {
+        List<McpToolDefinition> defs = new ArrayList<>();
+        for (McpToolDefinition def : toolDefinitions.values()) {
+            String name = def.getName();
+            if (name != null && !PLANNER_COMMIT_TOOLS.contains(name)) {
+                defs.add(def);
+            }
+        }
+        return defs;
+    }
+
+    /**
+     * Returns true if the given tool is a planner/commit tool that may be called directly.
+     */
+    public boolean isPlannerCommitTool(String toolName) {
+        return toolName != null && PLANNER_COMMIT_TOOLS.contains(toolName);
     }
 }
