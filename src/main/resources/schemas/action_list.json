@@ -1,21 +1,72 @@
 {
-  "description": "Return an empty action list. This is a placeholder tool used as a stub; it currently performs no actions and always returns an empty result.",
+  "description": "Submit a proposed action plan (actions + optional initialInput and data wiring). The server validates and caches the plan, then returns a planId. Use that planId when calling execute after user approval. Never call transaction-only tools directly; discover them via list_actions.",
   "inputSchema": {
     "type": "object",
-    "properties": {},
-    "additionalProperties": false
+    "properties": {
+      "initialInput": {
+        "type": "object",
+        "description": "Optional initial data for the chain. Actions can reference via inputsFrom with $initial.fieldName."
+      },
+      "actions": {
+        "type": "array",
+        "description": "Ordered list of actions. Each action: id (unique), tool (from list_actions or model_evaluation), optional arguments, optional inputsFrom ($prev.<actionId>.<path> or $initial.<path>).",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "tool": { "type": "string" },
+            "arguments": { "type": "object" },
+            "inputsFrom": { "type": "object" }
+          },
+          "required": ["id", "tool"]
+        }
+      }
+    },
+    "required": ["actions"]
   },
   "outputSchema": {
     "type": "object",
     "properties": {
-      "actions": {
-        "type": "array",
-        "items": {
-          "type": "object"
-        },
-        "description": "Currently always an empty array. Reserved for future action items."
+      "valid": { "type": "boolean" },
+      "errors": { "type": "array", "items": { "type": "string" } },
+      "planId": { "type": "string", "description": "Use this when calling execute after user approval." },
+      "presentation": {
+        "type": "object",
+        "description": "Human-friendly summary of the approved plan for UI display.",
+        "properties": {
+          "title": { "type": "string", "description": "Short title describing the plan." },
+          "body": { "type": "string", "description": "Detailed description of what the plan will do and whether data will be modified." },
+          "steps": {
+            "type": "array",
+            "description": "High-level description of each step in the plan.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": { "type": "string", "description": "Human-readable summary of the step." },
+                "tool": { "type": "string", "description": "Underlying MCP tool name for this step." },
+                "effect": {
+                  "type": "string",
+                  "description": "Primary effect of the step, e.g. read, write, delete, plan."
+                }
+              }
+            }
+          },
+          "effects": {
+            "type": "object",
+            "description": "Aggregate booleans indicating whether the plan reads, writes, or deletes data.",
+            "properties": {
+              "read": { "type": "boolean" },
+              "write": { "type": "boolean" },
+              "delete": { "type": "boolean" }
+            }
+          },
+          "dataAccess": {
+            "type": "array",
+            "description": "List of high-level data fields or domains accessed by this plan, such as contacts:name or tags:name.",
+            "items": { "type": "string" }
+          }
+        }
       }
-    },
-    "required": ["actions"]
+    }
   }
 }

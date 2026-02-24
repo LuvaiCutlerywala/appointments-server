@@ -1,5 +1,5 @@
 {
-  "description": "List available actions for the Action List feature. This is currently a placeholder tool that always returns an empty list of actions.",
+  "description": "Return a machine-friendly catalog of all tools that can appear in an action plan (transaction-only tools). Use this with action_list and execute: never call transaction-only tools directly. Flow: list_actions (discover) → action_list (submit plan, get validated plan) → user approves → execute (commit).",
   "inputSchema": {
     "type": "object",
     "properties": {},
@@ -10,10 +10,16 @@
     "properties": {
       "actions": {
         "type": "array",
+        "description": "List of tool definitions (name, description, inputSchema, annotations) that can be used in action_list plans.",
         "items": {
-          "type": "object"
-        },
-        "description": "Currently always an empty array. Reserved for future action metadata."
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "inputSchema": { "type": "object" },
+            "annotations": { "type": "object" }
+          }
+        }
       }
     },
     "required": ["actions"]
