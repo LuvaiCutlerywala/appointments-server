@@ -124,27 +124,13 @@ public class TagApiService {
     }
 
     /**
-     * Get all contact tags using Textellent API with pagination support.
+     * Get all contact tags using Textellent API.
      * GET /api/v1/tags.json
-     * Supports limit and offset parameters to prevent ChatGPT hallucination on large datasets.
      */
     public Object getAllTags(Map<String, Object> arguments, String authCode, String partnerClientCode) {
         logger.info("Getting all tags with arguments: {}", arguments);
 
         try {
-            // Extract pagination parameters (optional)
-            Integer limit = arguments.get("limit") != null ?
-                Integer.parseInt(arguments.get("limit").toString()) : 50; // Default 50
-            Integer offset = arguments.get("offset") != null ?
-                Integer.parseInt(arguments.get("offset").toString()) : 0; // Default 0
-
-            // Enforce max limit
-            if (limit > 100) {
-                limit = 100;
-            }
-
-            logger.info("Fetching tags with limit={}, offset={}", limit, offset);
-
             String response = webClient.get()
                     .uri("/api/v1/tags.json")
                     .header("authCode", authCode)
@@ -157,7 +143,7 @@ public class TagApiService {
                     })
                     .block();
 
-            // Parse response and apply pagination
+            // Parse response and return full tag list (names only)
             if (response != null) {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
@@ -191,36 +177,23 @@ public class TagApiService {
                     }
 
                     if (tagsNode != null && tagsNode.isArray()) {
-                        List<JsonNode> allTags = new ArrayList<>();
-                        tagsNode.forEach(allTags::add);
-
-                        int total = allTags.size();
-                        int fromIndex = Math.min(offset, total);
-                        int toIndex = Math.min(offset + limit, total);
-
-                        List<JsonNode> paginatedTags = allTags.subList(fromIndex, toIndex);
-
                         // Extract ONLY tag names to reduce response size and prevent hallucination
                         List<String> tagNames = new ArrayList<>();
-                        for (JsonNode tag : paginatedTags) {
+                        for (JsonNode tag : tagsNode) {
                             JsonNode nameNode = tag.get("tagName");
                             if (nameNode != null) {
                                 tagNames.add(nameNode.asText());
                             }
                         }
 
-                        // Build paginated response with NAMES ONLY
-                        Map<String, Object> paginatedResponse = new HashMap<>();
-                        paginatedResponse.put("tagNames", tagNames);  // Names only, not full objects
-                        paginatedResponse.put("total", total);
-                        paginatedResponse.put("limit", limit);
-                        paginatedResponse.put("offset", offset);
-                        paginatedResponse.put("hasMore", toIndex < total);
+                        // Build response with NAMES ONLY
+                        Map<String, Object> fullResponse = new HashMap<>();
+                        fullResponse.put("tagNames", tagNames);  // Names only, not full objects
+                        fullResponse.put("total", tagNames.size());
 
-                        logger.info("Returning {} tag names out of {} total (offset={}, hasMore={})",
-                            tagNames.size(), total, offset, toIndex < total);
+                        logger.info("Returning {} tag names", tagNames.size());
 
-                        return mapper.writeValueAsString(paginatedResponse);
+                        return mapper.writeValueAsString(fullResponse);
                     }
                 } catch (Exception e) {
                     logger.warn("Failed to parse/paginate tags response, returning raw response", e);
