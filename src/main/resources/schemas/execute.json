@@ -1,0 +1,51 @@
+{
+  "description": "Execute a user-approved plan by planId (from action_list). Call after user approval. Pass the planId returned by action_list. If result is large (>32K tokens), the server returns resultTooLarge and resultResourceUri; the result is exposed as an MCP resource so you can explore or search it without loading full content into context (avoids context rot). When you are done using that resource, call the release_resource tool with the resultResourceUri (or resource id) to release it on the server. This behaviour applies to every response that returns resultTooLarge.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "planId": {
+        "type": "string",
+        "description": "The planId returned by action_list after validation. Use this to run the cached plan."
+      },
+      "plan": {
+        "type": "object",
+        "description": "Alternative: full plan object (initialInput + actions). Prefer planId when available.",
+        "properties": {
+          "initialInput": { "type": "object" },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "tool": {
+                  "type": "string",
+                  "description": "Underlying MCP tool name (transaction-only) or model_evaluation to pause for model."
+                },
+                "arguments": { "type": "object" },
+                "inputsFrom": { "type": "object" }
+              },
+              "required": ["id", "tool"]
+            }
+          }
+        }
+      }
+    }
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "success": { "type": "boolean" },
+      "results": { "type": "array" },
+      "paused": { "type": "boolean" },
+      "executionId": { "type": "string" },
+      "state": { "type": "object" },
+      "resultsSoFar": { "type": "array" },
+      "nextPossibleSteps": { "type": "array" },
+      "resultTokenCount": { "type": "integer" },
+      "resultTooLarge": { "type": "boolean" },
+      "resultResourceUri": { "type": "string", "description": "URI of the result as an MCP resource (e.g. textellent://result/{id}). Explore via resources/read without loading into context. When done, call release_resource with this URI (or the resource id) to release the resource." },
+      "message": { "type": "string" }
+    }
+  }
+}

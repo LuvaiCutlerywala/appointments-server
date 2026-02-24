@@ -1,0 +1,34 @@
+{
+  "description": "Resume a paused execution (after a model_evaluation step). Call this with the executionId returned in the paused response. Execution continues from the next action until the next model_evaluation or end of plan. Returns either another paused response or final { success, results }.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "executionId": {
+        "type": "string",
+        "description": "The executionId from the paused response (returned when execution hit a model_evaluation step)."
+      }
+    },
+    "required": ["executionId"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "description": "Either a paused response (paused: true, executionId, state, resultsSoFar, nextPossibleSteps) or final result (success, results).",
+    "properties": {
+      "paused": { "type": "boolean" },
+      "executionId": { "type": "string" },
+      "state": {
+        "type": "object",
+        "properties": {
+          "initialInput": { "type": "object" },
+          "context": { "type": "object" },
+          "completedActionIds": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "resultsSoFar": { "type": "array" },
+      "nextPossibleSteps": { "type": "array" },
+      "success": { "type": "boolean" },
+      "results": { "type": "array" },
+      "error": { "type": "string" }
+    }
+  }
+}
