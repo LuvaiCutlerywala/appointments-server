@@ -1,5 +1,5 @@
 {
-  "description": "CRITICAL: This is the DEFAULT tool for listing contacts - use this instead of contacts_get_all. NEVER make up or guess contact data. Use cases: (1) 'list my contacts' or 'show contacts' - returns total count plus first 10 contacts (name and phone only). (2) 'find contact named X' or 'search for X' - use searchKey parameter to find specific contacts. (3) 'how many contacts do I have' - returns totalCount. For browsing more contacts, use contacts_get_all with pagination.",
+  "description": "CRITICAL: Prefer this tool over contacts_get_all. NEVER make up or guess contact data. Use cases: (1) 'list my contacts' or 'show contacts' - returns total count plus a page of contacts (name and phone only); supports pagination via pageSize and pageNum. (2) 'find contact named X' or 'search for X' - use searchKey parameter to find specific contacts. (3) 'how many contacts do I have' - returns totalCount. Use contacts_get_all only when you need data that this tool does not provide.",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -10,6 +10,19 @@
       "searchKey": {
         "type": "string",
         "description": "Optional search keyword to filter contacts by name or phone number"
+      },
+      "pageSize": {
+        "type": "integer",
+        "description": "Number of contacts per page (default: 10). Use pagination to retrieve all required pages.",
+        "default": 10,
+        "minimum": 1,
+        "maximum": 100
+      },
+      "pageNum": {
+        "type": "integer",
+        "description": "Page number to retrieve (default: 1). Use pagination to iterate through all required pages.",
+        "default": 1,
+        "minimum": 1
       }
     }
   },
@@ -22,7 +35,7 @@
       },
       "contacts": {
         "type": "array",
-        "description": "First 10 contacts (simplified: id, name and phone only). Use contacts_get_all with pagination if you need more.",
+        "description": "Contacts for this page (simplified: id, name and phone only). Use contacts_get_all only when you need data not present in this output.",
         "items": {
           "type": "object",
           "properties": {
@@ -30,14 +43,26 @@
               "type": "string",
               "description": "Internal contact identifier (needed for follow-up operations like contacts_delete)."
             },
-            "name": { "type": "string" },
-            "phone": { "type": "string" }
+            "name": {
+              "type": "string"
+            },
+            "phone": {
+              "type": "string"
+            }
           }
         }
       },
       "hasMore": {
         "type": "boolean",
-        "description": "True if there are more contacts beyond the first 10. Use contacts_get_all with pagination to see more."
+        "description": "True if there are more contacts on subsequent pages. Use contacts_get_all only when you need data not present in this output."
+      },
+      "pageSize": {
+        "type": "integer",
+        "description": "Number of contacts per page"
+      },
+      "pageNum": {
+        "type": "integer",
+        "description": "Current page number"
       },
       "searchKey": {
         "type": "string",
