@@ -1,5 +1,5 @@
 {
-  "description": "Use this tool only when you need data that contacts_get_summary does not provide. Prefer contacts_get_summary whenever possible. When using this tool, use its pagination feature to retrieve all required pages.",
+  "description": "Use this tool only when you need data that contacts_get_summary does not provide. Prefer contacts_get_summary whenever possible. This tool returns all matching contacts in a single result; for very large datasets the server may expose the result via a cached resource instead of inline content.",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -10,19 +10,6 @@
       "searchKey": {
         "type": "string",
         "description": "Search keyword to filter contacts"
-      },
-      "pageSize": {
-        "type": "integer",
-        "description": "Number of contacts per page (default: 10). Use pagination to retrieve all required pages.",
-        "default": 10,
-        "minimum": 1,
-        "maximum": 100
-      },
-      "pageNum": {
-        "type": "integer",
-        "description": "Page number to retrieve (default: 1). Use pagination to iterate through all required pages.",
-        "default": 1,
-        "minimum": 1
       }
     }
   },
@@ -39,15 +26,7 @@
       },
       "totalCount": {
         "type": "integer",
-        "description": "Total number of contacts available across all pages"
-      },
-      "pageSize": {
-        "type": "integer",
-        "description": "Number of contacts per page"
-      },
-      "pageNum": {
-        "type": "integer",
-        "description": "Current page number"
+        "description": "Total number of contacts available for the given filter"
       }
     },
     "required": ["contacts", "totalCount"]

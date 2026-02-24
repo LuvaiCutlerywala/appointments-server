@@ -1,5 +1,5 @@
 {
-  "description": "CRITICAL: Prefer this tool over contacts_get_all. NEVER make up or guess contact data. Use cases: (1) 'list my contacts' or 'show contacts' - returns total count plus a page of contacts (name and phone only); supports pagination via pageSize and pageNum. (2) 'find contact named X' or 'search for X' - use searchKey parameter to find specific contacts. (3) 'how many contacts do I have' - returns totalCount. Use contacts_get_all only when you need data that this tool does not provide.",
+  "description": "CRITICAL: Prefer this tool over contacts_get_all. NEVER make up or guess contact data. Use cases: (1) 'list my contacts' or 'show contacts' - returns total count plus a simplified list of contacts (name and phone only). (2) 'find contact named X' or 'search for X' - use searchKey parameter to find specific contacts. (3) 'how many contacts do I have' - returns totalCount. Use contacts_get_all only when you need data that this tool does not provide. For very large datasets, the server may expose the full result via a cached resource instead of inline content.",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -10,19 +10,6 @@
       "searchKey": {
         "type": "string",
         "description": "Optional search keyword to filter contacts by name or phone number"
-      },
-      "pageSize": {
-        "type": "integer",
-        "description": "Number of contacts per page (default: 10). Use pagination to retrieve all required pages.",
-        "default": 10,
-        "minimum": 1,
-        "maximum": 100
-      },
-      "pageNum": {
-        "type": "integer",
-        "description": "Page number to retrieve (default: 1). Use pagination to iterate through all required pages.",
-        "default": 1,
-        "minimum": 1
       }
     }
   },
@@ -35,7 +22,7 @@
       },
       "contacts": {
         "type": "array",
-        "description": "Contacts for this page (simplified: id, name and phone only). Use contacts_get_all only when you need data not present in this output.",
+        "description": "Simplified contacts for the query (id, name and phone only). Use contacts_get_all only when you need data not present in this output.",
         "items": {
           "type": "object",
           "properties": {
@@ -51,18 +38,6 @@
             }
           }
         }
-      },
-      "hasMore": {
-        "type": "boolean",
-        "description": "True if there are more contacts on subsequent pages. Use contacts_get_all only when you need data not present in this output."
-      },
-      "pageSize": {
-        "type": "integer",
-        "description": "Number of contacts per page"
-      },
-      "pageNum": {
-        "type": "integer",
-        "description": "Current page number"
       },
       "searchKey": {
         "type": "string",

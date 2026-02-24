@@ -96,22 +96,22 @@ public class ContactApiService {
 
     /**
      * Get all contacts using Textellent API.
-     * GET /api/v1/contacts.json?searchKey={searchKey}&pageSize={pageSize}&pageNum={pageNum}
+     * GET /api/v1/contacts.json?searchKey={searchKey}
      */
     public Object getAllContacts(Map<String, Object> arguments, String authCode, String partnerClientCode) {
         logger.info("Getting all contacts with arguments: {}", arguments);
 
         try {
             String searchKey = (String) arguments.getOrDefault("searchKey", "");
-            Integer pageSize = (Integer) arguments.getOrDefault("pageSize", 10);
-            Integer pageNum = (Integer) arguments.getOrDefault("pageNum", 1);
+            ObjectMapper mapper = new ObjectMapper();
 
-            String response = webClient.get()
+            // First page to determine total and page size (if backend paginates)
+            int initialPageNum = 1;
+            String firstPageResponse = webClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/api/v1/contacts.json")
                             .queryParam("searchKey", searchKey)
-                            .queryParam("pageSize", pageSize)
-                            .queryParam("pageNum", pageNum)
+                            .queryParam("pageNum", initialPageNum)
                             .build())
                     .header("authCode", authCode)
                     .header("partnerClientCode", partnerClientCode)
@@ -123,81 +123,78 @@ public class ContactApiService {
                     })
                     .block();
 
-            // Parse response and expose full contact objects (not a simplified summary).
-            if (response != null) {
-                try {
-                    ObjectMapper mapper = new ObjectMapper();
-                    JsonNode rootNode = mapper.readTree(response);
-
-                    // Check if this is an actual error response
-                    if (rootNode.has("error") && rootNode.get("error").isTextual()) {
-                        logger.warn("Backend returned error: {}", response);
-                        return response;
-                    }
-
-                    JsonNode dataNode = rootNode;
-                    if (rootNode.has("text")) {
-                        logger.info("Response has 'text' field, parsing as JSON");
-                        String textContent = rootNode.get("text").asText();
-                        dataNode = mapper.readTree(textContent);
-                    }
-
-                    if (dataNode.has("data")) {
-                        dataNode = dataNode.get("data");
-                    }
-
-                    JsonNode contactsNode;
-                    JsonNode totalCountNode = null;
-                    JsonNode pageSizeNode = null;
-                    JsonNode pageNumNode = null;
-                    if (dataNode.isArray()) {
-                        contactsNode = dataNode;
-                    } else {
-                        contactsNode = dataNode.get("contacts");
-                        totalCountNode = dataNode.get("totalCount");
-                        pageSizeNode = dataNode.get("pageSize");
-                        pageNumNode = dataNode.get("pageNum");
-                    }
-
-                    if (contactsNode != null && contactsNode.isArray()) {
-                        Map<String, Object> fullResponse = new HashMap<>();
-
-                        // Keep full contact objects exactly as provided by the backend.
-                        Object fullContacts = mapper.convertValue(contactsNode, Object.class);
-                        fullResponse.put("contacts", fullContacts);
-
-                        int totalCount = totalCountNode != null && totalCountNode.isInt()
-                                ? totalCountNode.asInt()
-                                : contactsNode.size();
-                        fullResponse.put("totalCount", totalCount);
-
-                        int effectivePageSize = pageSizeNode != null && pageSizeNode.isInt()
-                                ? pageSizeNode.asInt()
-                                : (pageSize != null ? pageSize : contactsNode.size());
-                        int effectivePageNum = pageNumNode != null && pageNumNode.isInt()
-                                ? pageNumNode.asInt()
-                                : (pageNum != null ? pageNum : 1);
-
-                        fullResponse.put("pageSize", effectivePageSize);
-                        fullResponse.put("pageNum", effectivePageNum);
-
-                        logger.info("Returning {} full contacts out of {} total (page {}/{})",
-                                contactsNode.size(),
-                                totalCount,
-                                effectivePageNum,
-                                effectivePageSize);
-
-                        return mapper.writeValueAsString(fullResponse);
-                    }
-                } catch (Exception e) {
-                    logger.warn("Failed to parse contacts_get_all response, returning raw response", e);
-                    return response;
-                }
+            if (firstPageResponse == null) {
+                logger.warn("No response received for contacts_get_all");
+                return null;
             }
 
-            // Should not reach here
-            logger.warn("No valid contacts array found in response");
-            return response;
+            ContactsPage firstPage = parseContactsPage(firstPageResponse, mapper);
+            if (firstPage == null || firstPage.contacts == null) {
+                // Either an error or unexpected format; return raw response
+                return firstPageResponse;
+            }
+
+            List<Map<String, Object>> allContacts = new ArrayList<>(firstPage.contacts);
+            int totalCount = firstPage.totalCount;
+            int pageSize = firstPage.pageSize > 0 ? firstPage.pageSize : allContacts.size();
+
+            // If there's only one page (or pageSize unknown), return what we have
+            if (pageSize <= 0 || totalCount <= allContacts.size()) {
+                Map<String, Object> fullResponse = new HashMap<>();
+                fullResponse.put("contacts", allContacts);
+                fullResponse.put("totalCount", totalCount);
+
+                logger.info("Returning {} full contacts (single page)", allContacts.size());
+                return mapper.writeValueAsString(fullResponse);
+            }
+
+            int totalPages = (totalCount + pageSize - 1) / pageSize;
+            logger.info("Detected paginated contacts: totalCount={}, pageSize={}, totalPages={}",
+                    totalCount, pageSize, totalPages);
+
+            // Fetch remaining pages
+            for (int currentPage = firstPage.pageNum + 1; currentPage <= totalPages; currentPage++) {
+                final int pageForLog = currentPage;
+                String pageResponse = webClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/api/v1/contacts.json")
+                                .queryParam("searchKey", searchKey)
+                                .queryParam("pageNum", pageForLog)
+                                .build())
+                        .header("authCode", authCode)
+                        .header("partnerClientCode", partnerClientCode)
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .onErrorResume(e -> {
+                            logger.error("Error getting contacts page {}", pageForLog, e);
+                            return Mono.just("{\"error\": \"" + e.getMessage() + "\"}");
+                        })
+                        .block();
+
+                if (pageResponse == null) {
+                    logger.warn("Null response for contacts page {}", pageForLog);
+                    break;
+                }
+
+                ContactsPage nextPage = parseContactsPage(pageResponse, mapper);
+                if (nextPage == null || nextPage.contacts == null || nextPage.contacts.isEmpty()) {
+                    logger.warn("No contacts found on page {}, stopping pagination", pageForLog);
+                    break;
+                }
+
+                allContacts.addAll(nextPage.contacts);
+            }
+
+            if (allContacts.size() > totalCount && totalCount > 0) {
+                allContacts = allContacts.subList(0, totalCount);
+            }
+
+            Map<String, Object> fullResponse = new HashMap<>();
+            fullResponse.put("contacts", allContacts);
+            fullResponse.put("totalCount", totalCount);
+
+            logger.info("Returning {} full contacts out of {} total", allContacts.size(), totalCount);
+            return mapper.writeValueAsString(fullResponse);
         } catch (Exception e) {
             logger.error("Failed to get all contacts", e);
             throw new RuntimeException("Failed to get all contacts: " + e.getMessage(), e);
@@ -207,34 +204,22 @@ public class ContactApiService {
     /**
      * Get a summary of contacts (count + simplified contact list) to avoid ChatGPT hallucination.
      * This is the DEFAULT tool for listing contacts - returns minimal data.
-     * GET /api/v1/contacts.json?searchKey=&pageSize=&pageNum=
+     * Internally uses getAllContacts to retrieve all matching contacts, then simplifies the result.
      */
     public Object getContactsSummary(Map<String, Object> arguments, String authCode, String partnerClientCode) {
         logger.info("Getting contacts summary with arguments: {}", arguments);
 
         try {
             String searchKey = (String) arguments.getOrDefault("searchKey", "");
-            Integer pageSize = (Integer) arguments.getOrDefault("pageSize", 10);
-            Integer pageNum = (Integer) arguments.getOrDefault("pageNum", 1);
+            Object allContactsResult = getAllContacts(arguments, authCode, partnerClientCode);
+            if (!(allContactsResult instanceof String)) {
+                logger.warn("Unexpected result type from getAllContacts: {}", allContactsResult != null ? allContactsResult.getClass() : "null");
+                return allContactsResult;
+            }
 
-            String response = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/api/v1/contacts.json")
-                            .queryParam("searchKey", searchKey)
-                            .queryParam("pageSize", pageSize)
-                            .queryParam("pageNum", pageNum)
-                            .build())
-                    .header("authCode", authCode)
-                    .header("partnerClientCode", partnerClientCode)
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .onErrorResume(e -> {
-                        logger.error("Error getting contacts summary", e);
-                        return Mono.just("{\"error\": \"" + e.getMessage() + "\"}");
-                    })
-                    .block();
+            String response = (String) allContactsResult;
 
-            // Parse response and extract totalCount + first 10 contacts (simplified)
+            // Parse response and extract totalCount + simplified contacts (id, name, phone)
             if (response != null) {
                 try {
                     ObjectMapper mapper = new ObjectMapper();
@@ -259,12 +244,8 @@ public class ContactApiService {
 
                     JsonNode contactsNode;
                     JsonNode totalCountNode = null;
-                    if (dataNode.isArray()) {
-                        contactsNode = dataNode;
-                    } else {
-                        contactsNode = dataNode.get("contacts");
-                        totalCountNode = dataNode.get("totalCount");
-                    }
+                    contactsNode = dataNode.get("contacts");
+                    totalCountNode = dataNode.get("totalCount");
 
                     Map<String, Object> summaryResponse = new HashMap<>();
 
@@ -303,21 +284,15 @@ public class ContactApiService {
                     }
 
                     int totalCount = totalCountNode != null ? totalCountNode.asInt() : simplifiedContacts.size();
-                    int pSize = pageSize != null ? pageSize : 10;
-                    int pNum = pageNum != null ? pageNum : 1;
-                    boolean hasMore = (pNum * pSize) < totalCount;
                     summaryResponse.put("totalCount", totalCount);
                     summaryResponse.put("contacts", simplifiedContacts);
-                    summaryResponse.put("hasMore", hasMore);
-                    summaryResponse.put("pageSize", pageSize);
-                    summaryResponse.put("pageNum", pageNum);
 
                     if (searchKey != null && !searchKey.isEmpty()) {
                         summaryResponse.put("searchKey", searchKey);
                     }
 
                     logger.info("Returning contacts summary: totalCount={}, page {}/{}, hasMore={}",
-                            totalCount, pNum, (totalCount + pSize - 1) / pSize, hasMore);
+                            totalCount, 1, 1, false);
 
                     return mapper.writeValueAsString(summaryResponse);
                 } catch (Exception e) {
@@ -424,6 +399,80 @@ public class ContactApiService {
         } catch (Exception e) {
             logger.error("Failed to find contact with multiple phone numbers", e);
             throw new RuntimeException("Failed to find contact with multiple phone numbers: " + e.getMessage(), e);
+        }
+    }
+
+    private static class ContactsPage {
+        List<Map<String, Object>> contacts;
+        int totalCount;
+        int pageSize;
+        int pageNum;
+    }
+
+    private ContactsPage parseContactsPage(String response, ObjectMapper mapper) {
+        try {
+            JsonNode rootNode = mapper.readTree(response);
+
+            // Check if this is an actual error response
+            if (rootNode.has("error") && rootNode.get("error").isTextual()) {
+                logger.warn("Backend returned error: {}", response);
+                return null;
+            }
+
+            JsonNode dataNode = rootNode;
+            if (rootNode.has("text")) {
+                logger.info("Response has 'text' field, parsing as JSON");
+                String textContent = rootNode.get("text").asText();
+                dataNode = mapper.readTree(textContent);
+            }
+
+            if (dataNode.has("data")) {
+                dataNode = dataNode.get("data");
+            }
+
+            JsonNode contactsNode;
+            JsonNode totalCountNode = null;
+            JsonNode pageSizeNode = null;
+            JsonNode pageNumNode = null;
+            if (dataNode.isArray()) {
+                contactsNode = dataNode;
+            } else {
+                contactsNode = dataNode.get("contacts");
+                totalCountNode = dataNode.get("totalCount");
+                pageSizeNode = dataNode.get("pageSize");
+                pageNumNode = dataNode.get("pageNum");
+            }
+
+            if (contactsNode != null && contactsNode.isArray()) {
+                ContactsPage page = new ContactsPage();
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> fullContacts = mapper.convertValue(contactsNode, List.class);
+                page.contacts = fullContacts;
+
+                int totalCount = totalCountNode != null && totalCountNode.isInt()
+                        ? totalCountNode.asInt()
+                        : contactsNode.size();
+                page.totalCount = totalCount;
+
+                int effectivePageSize = pageSizeNode != null && pageSizeNode.isInt()
+                        ? pageSizeNode.asInt()
+                        : contactsNode.size();
+                int effectivePageNum = pageNumNode != null && pageNumNode.isInt()
+                        ? pageNumNode.asInt()
+                        : 1;
+
+                page.pageSize = effectivePageSize;
+                page.pageNum = effectivePageNum;
+
+                return page;
+            }
+
+            logger.warn("No valid contacts array found in response while parsing page");
+            return null;
+        } catch (Exception e) {
+            logger.warn("Failed to parse contacts page response, returning null", e);
+            return null;
         }
     }
 
