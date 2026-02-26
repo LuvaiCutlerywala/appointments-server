@@ -612,8 +612,25 @@ public class McpController {
             if (!rateLimitOk) {
                 String limitType = Boolean.TRUE.equals(toolDef.getReadOnly()) ? "read" : "write";
                 auditLogService.logFailure(toolName, arguments, "Rate limit exceeded: " + limitType);
-                return createErrorResponse(request.getId(), -32000,
-                    "Rate limit exceeded for " + limitType + " operations");
+
+                // Return a cooldown-style MCP result instead of a JSON-RPC error so
+                // clients see the connector as healthy but temporarily rate-limited.
+                List<Map<String, Object>> contentArray = new ArrayList<>();
+                Map<String, Object> contentItem = new HashMap<>();
+                contentItem.put("type", "text");
+                contentItem.put("text",
+                    "This connector has reached its " + limitType + " rate limit. " +
+                    "Please wait about 60 seconds before making more " + limitType + " tool calls.");
+                contentArray.add(contentItem);
+
+                Map<String, Object> resultMap = new HashMap<>();
+                resultMap.put("content", contentArray);
+                resultMap.put("isError", true);
+                resultMap.put("rateLimited", true);
+                resultMap.put("limitType", limitType);
+
+                McpRpcResponse response = new McpRpcResponse(request.getId(), resultMap);
+                return ResponseEntity.ok(response);
             }
 
             // Extract authCode and partnerClientCode from JWT if in OAuth2 mode
