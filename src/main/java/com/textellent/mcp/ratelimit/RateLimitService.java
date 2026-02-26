@@ -27,10 +27,10 @@ public class RateLimitService {
     @Value("${ratelimit.read.refill-duration-minutes:1}")
     private long readRefillDuration;
 
-    @Value("${ratelimit.write.capacity:20}")
+    @Value("${ratelimit.write.capacity:200}")
     private long writeCapacity;
 
-    @Value("${ratelimit.write.refill-tokens:20}")
+    @Value("${ratelimit.write.refill-tokens:200}")
     private long writeRefillTokens;
 
     @Value("${ratelimit.write.refill-duration-minutes:1}")

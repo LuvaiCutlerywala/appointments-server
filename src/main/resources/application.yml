@@ -50,8 +50,8 @@ ratelimit:
     refill-tokens: ${RATELIMIT_READ_REFILL:100}
     refill-duration-minutes: ${RATELIMIT_READ_DURATION:1}
   write:
-    capacity: ${RATELIMIT_WRITE_CAPACITY:20}
-    refill-tokens: ${RATELIMIT_WRITE_REFILL:20}
+    capacity: ${RATELIMIT_WRITE_CAPACITY:200}
+    refill-tokens: ${RATELIMIT_WRITE_REFILL:200}
     refill-duration-minutes: ${RATELIMIT_WRITE_DURATION:1}
 
 # Resilience4j Configuration
