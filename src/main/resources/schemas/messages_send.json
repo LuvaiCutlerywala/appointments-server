@@ -1,5 +1,9 @@
 {
   "description": "CRITICAL: ALWAYS call this tool - NEVER make up, guess, or fabricate data. Send SMS/MMS using Textellent API. Use this tool directly only when a single call to this tool is sufficient to complete the user's request; for any sequence of two or more tool calls, use the `batch_action` tool instead.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -34,7 +38,11 @@
         "description": "Optional partner client code to call APIs on behalf of a specific partner office/sub-client. Only use when explicitly requested by the user."
       }
     },
-    "required": ["text", "from", "to"]
+    "required": [
+      "text",
+      "from",
+      "to"
+    ]
   },
   "outputSchema": {
     "type": "object",

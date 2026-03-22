@@ -1,5 +1,9 @@
 {
   "description": "Use this tool only when you need data that contacts_get_summary does not provide. Prefer contacts_get_summary whenever possible. This tool returns all matching contacts in a single result; for very large datasets the server may expose the result via a cached resource instead of inline content. Use this tool directly only when a single call to this tool is sufficient to complete the user's request; for any sequence of two or more tool calls, use the `batch_action` tool instead.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -29,6 +33,9 @@
         "description": "Total number of contacts available for the given filter"
       }
     },
-    "required": ["contacts", "totalCount"]
+    "required": [
+      "contacts",
+      "totalCount"
+    ]
   }
 }

@@ -1,5 +1,9 @@
 {
   "description": "CRITICAL: ALWAYS call this tool - NEVER make up, guess, or fabricate data. Add one or more contacts to Textellent. IMPORTANT: (1) DO NOT call contacts_find before adding - add contacts DIRECTLY without checking if they exist. The backend handles duplicates automatically. (2) When creating multiple contacts, include ALL contacts in a SINGLE call - DO NOT make separate calls for each contact. (3) After adding, use the phone numbers directly with tags_assign_contacts - no need to look up contacts. Use this tool directly only when a single call to this tool is sufficient to complete the user's request; for any sequence of two or more tool calls, use the `batch_action` tool instead.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -37,12 +41,17 @@
               "description": "Alternate phone number"
             }
           },
-          "required": ["contactFirstName", "phoneMobile"]
+          "required": [
+            "contactFirstName",
+            "phoneMobile"
+          ]
         },
         "description": "Array of contacts to add. Include ALL contacts in this single array - do not make multiple API calls."
       }
     },
-    "required": ["contacts"]
+    "required": [
+      "contacts"
+    ]
   },
   "outputSchema": {
     "type": "object",

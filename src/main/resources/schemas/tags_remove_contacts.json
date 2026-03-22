@@ -1,5 +1,9 @@
 {
   "description": "CRITICAL: ALWAYS call this tool - NEVER make up, guess, or fabricate data. Remove one or more contacts from a tag. IMPORTANT: When removing multiple contacts from the same tag, ALWAYS include ALL phone numbers in a SINGLE call using the phoneNumbers array - DO NOT make separate calls for each contact. Use this tool directly only when a single call to this tool is sufficient to complete the user's request; for any sequence of two or more tool calls, use the `batch_action` tool instead.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -19,7 +23,10 @@
         "description": "Array of phone numbers to remove from the tag. Include ALL phone numbers in this single array - do not make multiple API calls."
       }
     },
-    "required": ["tagName", "phoneNumbers"]
+    "required": [
+      "tagName",
+      "phoneNumbers"
+    ]
   },
   "outputSchema": {
     "type": "object",

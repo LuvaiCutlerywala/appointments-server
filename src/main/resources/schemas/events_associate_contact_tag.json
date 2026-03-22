@@ -1,5 +1,9 @@
 {
   "description": "CRITICAL: ALWAYS call this tool - NEVER make up, guess, or fabricate data. Get associate contact to tag events",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {

@@ -1,5 +1,9 @@
 {
   "description": "CRITICAL: Prefer this tool over contacts_get_all. NEVER make up or guess contact data. Use cases: (1) 'list my contacts' or 'show contacts' - returns total count plus a simplified list of contacts (name and phone only). (2) 'find contact named X' or 'search for X' - use searchKey parameter to find specific contacts. (3) 'how many contacts do I have' - returns totalCount. Use contacts_get_all only when you need data that this tool does not provide. For very large datasets, the server may expose the full result via a cached resource instead of inline content. Use this tool directly only when a single call to this tool is sufficient to complete the user's request; for any sequence of two or more tool calls, use the `batch_action` tool instead.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -44,6 +48,9 @@
         "description": "Search key used (if any)"
       }
     },
-    "required": ["totalCount", "contacts"]
+    "required": [
+      "totalCount",
+      "contacts"
+    ]
   }
 }

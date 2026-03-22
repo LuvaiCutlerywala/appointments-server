@@ -1,5 +1,9 @@
 {
   "description": "Update an existing contact tag. Use this tool directly only when a single call to this tool is sufficient to complete the user's request; for any sequence of two or more tool calls, use the `batch_action` tool instead.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -37,7 +41,10 @@
         }
       }
     },
-    "required": ["tagId", "tagData"]
+    "required": [
+      "tagId",
+      "tagData"
+    ]
   },
   "outputSchema": {
     "type": "object",
