@@ -1,0 +1,122 @@
+{
+  "version": "1.0",
+  "title": "Textellent MCP Orchestration DSL",
+  "description": "JSON-based DSL for planning and executing multi-step workflows via the dsl_execute_plan tool. This DSL lets you describe permissions, limits, phases, and steps (tool calls, waits, computations, and checkpoints) in a single plan that the orchestrator executes.",
+  "usage": {
+    "whenToUse": [
+      "User asks for multi-step workflows (two or more MCP operations).",
+      "User asks for destructive or bulk operations (delete many contacts, delete tags, etc.).",
+      "User wants long-running or batched work with minimal back-and-forth."
+    ],
+    "howToUse": [
+      "Construct a JSON object with top-level keys: version and either task (full form) or simplePlan (linear form).",
+      "Wrap this object as the value of the `plan` property when calling the dsl_execute_plan tool.",
+      "For simple, unrelated operations, prefer simplePlan. For complex workflows or batching, use task/phases/steps."
+    ]
+  },
+  "schemaReference": "The input schema for dsl_execute_plan (src/main/resources/schemas/dsl_execute_plan.json) formally defines the allowed structure and fields.",
+  "resultHandling": {
+    "synchronousAndStateless": "Each dsl_execute_plan call runs to completion and returns a result. The server does not retain execution state.",
+    "varsInResult": "The result includes a 'vars' object: all captured step outputs (from capture) at the end of the run. Use this data to reason, to answer the user, or to build a follow-up plan.",
+    "stoppingForUserInputOrThinking": "To stop for user input or further thinking, submit a plan that ends at the desired point (e.g. one phase or a few steps). The server returns status, summary, and vars. You then process that result, optionally ask the user a question or think, and when ready submit a new plan that continues (e.g. a plan whose steps use or act on the data in the previous result). No execution ID or resume is required."
+  },
+  "examples": {
+    "simplePlan": {
+      "version": "1.0",
+      "simplePlan": {
+        "description": "List contacts, delete the first one, then list tags.",
+        "permissions": {
+          "mode": "modify_workspace",
+          "allowedServers": ["textellent"],
+          "allowedTools": [
+            "contacts_get_all",
+            "contacts_delete",
+            "tags_get_all"
+          ]
+        },
+        "limits": {
+          "maxToolCalls": 10,
+          "maxDurationMs": 300000
+        },
+        "defaultOnError": {
+          "policy": "fail_plan",
+          "maxRetries": 1,
+          "retryBackoffMs": 2000,
+          "retryOn": ["timeout"]
+        },
+        "steps": [
+          {
+            "id": "list_contacts",
+            "server": "textellent",
+            "tool": "contacts_get_all",
+            "args": {
+              "searchKey": "",
+              "pageSize": 10,
+              "pageNum": 1
+            },
+            "capture": "contacts"
+          },
+          {
+            "id": "delete_first_contact",
+            "server": "textellent",
+            "tool": "contacts_delete",
+            "args": {
+              "contactId": "{{vars.contacts.contacts[0].id}}"
+            }
+          },
+          {
+            "id": "list_tags",
+            "server": "textellent",
+            "tool": "tags_get_all",
+            "args": {},
+            "capture": "tags"
+          }
+        ]
+      }
+    },
+    "taskDeleteTags": {
+      "version": "1.0",
+      "task": {
+        "id": "clear_tags",
+        "description": "Delete all tags in safe batches.",
+        "permissions": {
+          "mode": "destructive",
+          "allowedServers": ["textellent"],
+          "allowedTools": ["tags_get_all", "tags_delete"]
+        },
+        "limits": {
+          "maxToolCalls": 200,
+          "maxDurationMs": 900000,
+          "maxParallelSteps": 1,
+          "maxDeletesPerPlan": 500
+        },
+        "phases": [
+          {
+            "id": "delete_tags",
+            "description": "Fetch all tags and delete them.",
+            "confirmation": {
+              "required": true,
+              "message": "Permanently delete all tags in your account.",
+              "dangerLevel": "high"
+            },
+            "steps": [
+              {
+                "id": "fetch_tags",
+                "type": "toolCall",
+                "server": "textellent",
+                "tool": "tags_get_all",
+                "args": {},
+                "capture": "tags_snapshot",
+                "effect": "read"
+              }
+            ]
+          }
+        ],
+        "finalSummary": {
+          "fromVar": "summary"
+        }
+      }
+    }
+  }
+}
+
