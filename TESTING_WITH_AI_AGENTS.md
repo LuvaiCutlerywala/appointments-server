@@ -434,13 +434,10 @@ node test_mcp_client.js
 
 Once Claude Desktop is connected to your MCP server, you can ask it natural language questions like:
 
-- "List all my contacts"
-- "Send a message to +15109721012 saying 'Hello!'"
-- "Create a new contact for John Doe with phone +15551234567"
-- "Get all tags"
-- "Create an appointment for tomorrow at 2pm"
-- "Show me incoming message events"
-- "Subscribe to incoming message webhooks at https://myapp.com/webhook"
+- "Plan and execute a workflow to list all my contacts using dsl_execute_plan"
+- "Delete all my tags safely in batches using a single orchestration plan"
+- "Import drivers and constructors from CSV with one DSL plan"
+- "Create an appointment for tomorrow at 2pm via the orchestrator"
 
 Claude will automatically:
 1. Understand your intent
