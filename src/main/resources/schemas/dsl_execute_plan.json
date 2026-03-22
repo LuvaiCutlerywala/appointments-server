@@ -1,0 +1,623 @@
+{
+  "description": "Execute a JSON-based MCP Orchestration DSL plan. The plan describes one or more phases of work, their permissions and limits, and the steps (tool calls, loops, waits, computations, checkpoints) to run. Use this tool whenever the user's request involves multiple MCP operations, destructive actions, or long-running workflows. For trivial single operations, you may still use a minimal plan containing a single phase with one toolCall step.",
+  "x-textellent-mcp": {
+    "directToolsCall": true,
+    "invocation": "direct_tools_call"
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "plan": {
+        "type": "object",
+        "description": "The orchestration plan to execute. Must conform to the MCP Orchestration DSL. Either `task` (full form) or `simplePlan` (linear form) must be present. MCP: step `tool` values must be Textellent primitive names from tools/list (each has x-textellent-mcp.invocation=dsl_step_only); never call those names with tools/call.",
+        "properties": {
+          "version": {
+            "type": "string",
+            "description": "DSL version string, e.g. \"1.0\"."
+          },
+          "task": {
+            "type": "object",
+            "description": "Full orchestration form for complex workflows with phases, steps, batching, and checkpoints.",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "permissions": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "read_only",
+                      "modify_workspace",
+                      "destructive"
+                    ]
+                  },
+                  "allowedServers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "allowedTools": {
+                    "type": "array",
+                    "description": "MCP: which dsl_step_only primitive names (from tools/list, x-textellent-mcp.invocation=dsl_step_only) this task may run inside steps—not MCP tools/call targets.",
+                    "items": {
+                      "type": "string",
+                      "description": "Exact registered primitive tool name."
+                    }
+                  },
+                  "allowedResources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "dangerScope": {
+                    "type": "object",
+                    "properties": {
+                      "maxDeletes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "maxCreates": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "mode",
+                  "allowedServers",
+                  "allowedTools"
+                ],
+                "additionalProperties": false
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "maxToolCalls": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "maxDurationMs": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "maxParallelSteps": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "maxDeletesPerPlan": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "maxToolCalls",
+                  "maxDurationMs"
+                ],
+                "additionalProperties": false
+              },
+              "phases": {
+                "type": "array",
+                "description": "High-level sections of work (e.g. delete_contacts, delete_tags, import_data). Executed respecting dependsOn ordering.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "dependsOn": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "confirmation": {
+                      "type": "object",
+                      "properties": {
+                        "required": {
+                          "type": "boolean"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "dangerLevel": {
+                          "type": "string",
+                          "enum": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "steps": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "toolCall",
+                              "batchLoop",
+                              "checkpoint",
+                              "wait",
+                              "compute"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "next": {
+                            "type": "string"
+                          },
+                          "onError": {
+                            "type": "object",
+                            "properties": {
+                              "policy": {
+                                "type": "string",
+                                "enum": [
+                                  "fail_phase",
+                                  "fail_task",
+                                  "continue",
+                                  "ask_user"
+                                ]
+                              },
+                              "maxRetries": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "retryBackoffMs": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "retryOn": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "timeout",
+                                    "5xx"
+                                  ]
+                                }
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "server": {
+                            "type": "string"
+                          },
+                          "tool": {
+                            "type": "string",
+                            "description": "MCP: Textellent primitive tool name exactly as in tools/list (dsl_step_only). Never pass this name to MCP tools/call—only here inside dsl_execute_plan."
+                          },
+                          "args": {
+                            "type": "object",
+                            "description": "Raw JSON arguments for toolCall. MCP: these are step args only (dsl_step_only primitives), not a tools/call root payload."
+                          },
+                          "capture": {
+                            "type": "string"
+                          },
+                          "effect": {
+                            "type": "string",
+                            "enum": [
+                              "read",
+                              "write",
+                              "destructive"
+                            ]
+                          },
+                          "timeoutMs": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "source": {
+                            "type": "object",
+                            "properties": {
+                              "fromVar": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "batch": {
+                            "type": "object",
+                            "properties": {
+                              "size": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "maxBatches": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "throttleMsBetweenBatches": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "loopCondition": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "until_empty"
+                                ]
+                              },
+                              "remainingCounterVar": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "bodyStep": {
+                            "type": "object",
+                            "description": "Single-step template executed for each batch item when type=batchLoop.",
+                            "properties": {
+                              "server": {
+                                "type": "string"
+                              },
+                              "tool": {
+                                "type": "string",
+                                "description": "MCP: Textellent primitive tool name exactly as in tools/list (dsl_step_only). Never pass this name to MCP tools/call—only here inside dsl_execute_plan."
+                              },
+                              "effect": {
+                                "type": "string",
+                                "enum": [
+                                  "read",
+                                  "write",
+                                  "destructive"
+                                ]
+                              },
+                              "argsTemplate": {
+                                "type": "object",
+                                "description": "Arguments with string templates like {{batch.items[*].id}} or {{vars.someVar}}."
+                              },
+                              "capture": {
+                                "type": "string"
+                              },
+                              "timeoutMs": {
+                                "type": "integer",
+                                "minimum": 1
+                              }
+                            },
+                            "required": [
+                              "server",
+                              "tool"
+                            ],
+                            "additionalProperties": true
+                          },
+                          "progress": {
+                            "type": "object",
+                            "properties": {
+                              "reportEveryBatches": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "summaryTemplate": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "summaryFromVar": {
+                            "type": "string"
+                          },
+                          "prompt": {
+                            "type": "string"
+                          },
+                          "choices": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "default": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "label"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "onChoice": {
+                            "type": "object",
+                            "description": "Maps checkpoint choice id to next step id.",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "operation": {
+                            "type": "string"
+                          },
+                          "targetVar": {
+                            "type": "string"
+                          },
+                          "expression": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "length",
+                                  "literal",
+                                  "pick",
+                                  "math"
+                                ]
+                              }
+                            },
+                            "additionalProperties": true
+                          },
+                          "durationMs": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "steps"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "finalSummary": {
+                "type": "object",
+                "properties": {
+                  "fromVar": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "description",
+              "permissions",
+              "limits",
+              "phases"
+            ],
+            "additionalProperties": false
+          },
+          "simplePlan": {
+            "type": "object",
+            "description": "Simplified linear form for multiple independent operations executed sequentially. MCP: each step's `tool` is a dsl_step_only primitive name from tools/list, never a tools/call target.",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "permissions": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "read_only",
+                      "modify_workspace",
+                      "destructive"
+                    ]
+                  },
+                  "allowedServers": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "allowedTools": {
+                    "type": "array",
+                    "description": "MCP: which dsl_step_only primitive names (from tools/list) this simple plan may invoke in steps—not MCP tools/call targets.",
+                    "items": {
+                      "type": "string",
+                      "description": "Exact registered primitive tool name."
+                    }
+                  }
+                },
+                "required": [
+                  "mode",
+                  "allowedServers",
+                  "allowedTools"
+                ],
+                "additionalProperties": false
+              },
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "maxToolCalls": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "maxDurationMs": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "maxToolCalls",
+                  "maxDurationMs"
+                ],
+                "additionalProperties": false
+              },
+              "defaultOnError": {
+                "type": "object",
+                "properties": {
+                  "policy": {
+                    "type": "string",
+                    "enum": [
+                      "fail_plan",
+                      "continue",
+                      "ask_user"
+                    ]
+                  },
+                  "maxRetries": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "retryBackoffMs": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "retryOn": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "timeout",
+                        "5xx"
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": false
+              },
+              "steps": {
+                "type": "array",
+                "description": "Sequential list of tool calls. Each step is implicitly type=toolCall.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "server": {
+                      "type": "string"
+                    },
+                    "tool": {
+                      "type": "string",
+                      "description": "MCP: Textellent primitive tool name exactly as in tools/list (dsl_step_only). Never pass this name to MCP tools/call—only here inside dsl_execute_plan."
+                    },
+                    "args": {
+                      "type": "object",
+                      "description": "Arguments for this tool call; may include template strings like {{vars.previousResult.field}}. MCP: step args for a dsl_step_only primitive, not tools/call."
+                    },
+                    "capture": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "server",
+                    "tool"
+                  ],
+                  "additionalProperties": true
+                }
+              }
+            },
+            "required": [
+              "description",
+              "permissions",
+              "limits",
+              "steps"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "dryRun": {
+        "type": "boolean",
+        "description": "If true, validate the plan and return a structural validation result without executing any steps."
+      }
+    },
+    "required": [
+      "plan"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "description": "High-level execution result of the orchestration plan. Execution is always synchronous and stateless.",
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": [
+          "succeeded",
+          "failed"
+        ],
+        "description": "Final status of the plan execution."
+      },
+      "phases": {
+        "type": "array",
+        "description": "Per-phase execution summaries when using the full task form.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "running",
+                "succeeded",
+                "failed",
+                "skipped"
+              ]
+            },
+            "error": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "summary": {
+        "type": "string",
+        "description": "Human-readable summary derived from finalSummary.fromVar or a default summary when not provided."
+      },
+      "vars": {
+        "type": "object",
+        "description": "Accumulated variable state at end of execution: all captured step outputs (capture) keyed by variable name. Returned so the model can process this data, ask the user for input, or build a follow-up plan that continues from this state. Opaque to the server; no persistence."
+      },
+      "validationErrors": {
+        "type": "array",
+        "description": "Validation issues found when dryRun=true or when the plan is structurally invalid.",
+        "items": {
+          "type": "string"
+        }
+      },
+      "lastError": {
+        "type": "string",
+        "description": "Last execution error message, if any."
+      }
+    }
+  }
+}
