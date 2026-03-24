@@ -1,15 +1,17 @@
 package com.textellent.mcp.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.stereotype.Component;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
  * Simple API key authentication filter.
  * Validates X-API-Key header against configured value.
  */
+@Component
+@ConditionalOnProperty(name = "security.mode", havingValue = "apikey")
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     @Value("${security.api-key:}")

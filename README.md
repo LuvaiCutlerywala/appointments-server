@@ -191,55 +191,17 @@ See **[DEPLOYMENT.md](DEPLOYMENT.md)** for comprehensive guides on:
 | Method | Description | Auth Required |
 |--------|-------------|---------------|
 | `initialize` | Protocol handshake | No |
-| `tools/list` | List available tools | Yes (read scope) |
-| `tools/call` | Execute a tool | Yes (tool-specific) |
+| `tools/list` | List tools visible for this token (orchestrator + DSL primitives for discovery) | Yes (read scope) |
+| `tools/call` | Execute a tool (`dsl_execute_plan` only; primitives run inside plans) | Yes (tool-specific) |
 | `notifications/*` | Client notifications | No |
 
-## Available Tools (32 Total)
+## Available Tools
 
-### Messages (1)
-- `messages_send` - Send SMS/MMS (**write**, destructive:false)
+### Orchestration (direct call)
+- `dsl_execute_plan` - Execute a JSON-based orchestration plan (**read/write/destructive**, depending on nested tools). This is the only tool clients should call via `tools/call`.
 
-### Contacts (7)
-- `contacts_add` - Add contacts (**write**, destructive:false)
-- `contacts_update` - Update contact (**write**, destructive:false)
-- `contacts_get_all` - List contacts (**read**, readonly:true)
-- `contacts_get` - Get contact details (**read**, readonly:true)
-- `contacts_delete` - Delete contact (**write**, destructive:true)
-- `contacts_find_multiple_phones` - Find by phones (**read**, readonly:true)
-- `contacts_find` - Find contact (**read**, readonly:true)
-
-### Tags (7)
-- `tags_create` - Create tag (**write**, destructive:false)
-- `tags_update` - Update tag (**write**, destructive:false)
-- `tags_get` - Get tag details (**read**, readonly:true)
-- `tags_get_all` - List all tags (**read**, readonly:true)
-- `tags_assign_contacts` - Assign contacts to tag (**write**, destructive:false)
-- `tags_delete` - Delete tag (**write**, destructive:true)
-- `tags_remove_contacts` - Remove contacts from tag (**write**, destructive:true)
-
-### Appointments (3)
-- `appointments_create` - Create appointment (**write**, destructive:false)
-- `appointments_update` - Update appointment (**write**, destructive:false)
-- `appointments_cancel` - Cancel appointment (**write**, destructive:true)
-
-### Events (11) - All **read-only**
-- `events_incoming_message` - Get incoming messages
-- `events_outgoing_delivery_status` - Get delivery status
-- `events_new_contact_details` - Get new contacts
-- `events_phone_added_wrong_number` - Get wrong number events
-- `events_phone_added_dnt` - Get DNT additions
-- `events_phone_removed_dnt` - Get DNT removals
-- `events_associate_contact_tag` - Get tag associations
-- `events_disassociate_contact_tag` - Get tag disassociations
-- `events_appointment_created` - Get appointment creations
-- `events_appointment_updated` - Get appointment updates
-- `events_appointment_canceled` - Get appointment cancellations
-
-### Configuration (3)
-- `webhook_subscribe` - Subscribe to webhooks (**write**, destructive:false)
-- `webhook_unsubscribe` - Unsubscribe (**write**, destructive:true)
-- `webhook_list_subscriptions` - List subscriptions (**read**, readonly:true)
+### DSL primitives (discovery + plans only)
+Contacts, tags, messages, appointments, events, and configuration tools appear in `tools/list` so agents know exact `name` values and `inputSchema` for plan steps. They are **not** callable via `tools/call`; reference them inside `dsl_execute_plan`. Each tool schema file and `tools/list` entry includes `x-textellent-mcp` (`directToolsCall: false`, `invocation: dsl_step_only`) plus the same policy in the tool description and root `inputSchema`/`outputSchema` descriptions (applied at load time).
 
 ## Security Configuration
 
@@ -472,8 +434,8 @@ RATELIMIT_READ_REFILL=100           # Tokens per refill
 RATELIMIT_READ_DURATION=1           # Refill interval (minutes)
 
 # Write operations (CREATE, UPDATE, DELETE)
-RATELIMIT_WRITE_CAPACITY=20
-RATELIMIT_WRITE_REFILL=20
+RATELIMIT_WRITE_CAPACITY=200
+RATELIMIT_WRITE_REFILL=200
 RATELIMIT_WRITE_DURATION=1
 ```
 

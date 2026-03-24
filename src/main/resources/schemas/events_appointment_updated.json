@@ -1,5 +1,9 @@
 {
-  "description": "CRITICAL: ALWAYS call this tool - NEVER make up, guess, or fabricate data. Get appointment updated events",
+  "description": "CRITICAL: ALWAYS call this tool - NEVER make up, guess, or fabricate data. List appointment updated callback events. Invoke only as a step inside dsl_execute_plan.",
+  "x-textellent-mcp": {
+    "directToolsCall": false,
+    "invocation": "dsl_step_only"
+  },
   "inputSchema": {
     "type": "object",
     "properties": {

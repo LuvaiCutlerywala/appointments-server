@@ -29,6 +29,13 @@ public class McpToolDefinition {
     @JsonProperty("annotations")
     private Map<String, Object> annotations;
 
+    /**
+     * Declares how this tool may be invoked over MCP (direct tools/call vs dsl_execute_plan steps only).
+     * Present in schema files as {@code x-textellent-mcp}; echoed in tools/list for clients.
+     */
+    @JsonProperty("x-textellent-mcp")
+    private Map<String, Object> textellentMcp;
+
     // Keep internal fields for backwards compatibility and internal logic
     @JsonIgnore
     private Boolean readOnly;
@@ -125,6 +132,14 @@ public class McpToolDefinition {
 
     public void setAnnotations(Map<String, Object> annotations) {
         this.annotations = annotations;
+    }
+
+    public Map<String, Object> getTextellentMcp() {
+        return textellentMcp;
+    }
+
+    public void setTextellentMcp(Map<String, Object> textellentMcp) {
+        this.textellentMcp = textellentMcp;
     }
 
     /**

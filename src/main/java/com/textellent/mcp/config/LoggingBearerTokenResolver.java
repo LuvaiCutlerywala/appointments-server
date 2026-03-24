@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Custom BearerTokenResolver that logs token extraction attempts.

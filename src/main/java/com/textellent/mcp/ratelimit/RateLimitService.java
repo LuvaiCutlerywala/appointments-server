@@ -3,7 +3,6 @@ package com.textellent.mcp.ratelimit;
 import com.textellent.mcp.security.TenantContextHolder;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Bucket4j;
 import io.github.bucket4j.Refill;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,10 +27,10 @@ public class RateLimitService {
     @Value("${ratelimit.read.refill-duration-minutes:1}")
     private long readRefillDuration;
 
-    @Value("${ratelimit.write.capacity:20}")
+    @Value("${ratelimit.write.capacity:200}")
     private long writeCapacity;
 
-    @Value("${ratelimit.write.refill-tokens:20}")
+    @Value("${ratelimit.write.refill-tokens:200}")
     private long writeRefillTokens;
 
     @Value("${ratelimit.write.refill-duration-minutes:1}")
@@ -79,13 +78,13 @@ public class RateLimitService {
     private Bucket createReadBucket() {
         Bandwidth limit = Bandwidth.classic(readCapacity,
             Refill.intervally(readRefillTokens, Duration.ofMinutes(readRefillDuration)));
-        return Bucket4j.builder().addLimit(limit).build();
+        return Bucket.builder().addLimit(limit).build();
     }
 
     private Bucket createWriteBucket() {
         Bandwidth limit = Bandwidth.classic(writeCapacity,
             Refill.intervally(writeRefillTokens, Duration.ofMinutes(writeRefillDuration)));
-        return Bucket4j.builder().addLimit(limit).build();
+        return Bucket.builder().addLimit(limit).build();
     }
 
     private String getTenantKey() {

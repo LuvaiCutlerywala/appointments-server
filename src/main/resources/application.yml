@@ -5,7 +5,7 @@ server:
 
 spring:
   application:
-    name: textellent-mcp-server
+    name: textellent-appointments-mcp-server
 
   jackson:
     default-property-inclusion: non_null
@@ -50,8 +50,8 @@ ratelimit:
     refill-tokens: ${RATELIMIT_READ_REFILL:100}
     refill-duration-minutes: ${RATELIMIT_READ_DURATION:1}
   write:
-    capacity: ${RATELIMIT_WRITE_CAPACITY:20}
-    refill-tokens: ${RATELIMIT_WRITE_REFILL:20}
+    capacity: ${RATELIMIT_WRITE_CAPACITY:200}
+    refill-tokens: ${RATELIMIT_WRITE_REFILL:200}
     refill-duration-minutes: ${RATELIMIT_WRITE_DURATION:1}
 
 # Resilience4j Configuration
@@ -111,7 +111,7 @@ logging:
 # MCP Configuration
 mcp:
   server:
-    name: textellent-mcp-server
+    name: textellent-appointments-mcp-server
     version: 1.0.0
-    description: MCP Server exposing Textellent REST APIs
+    description: MCP Server exposing Textellent appointment APIs
     protocol-version: 2025-06-18
